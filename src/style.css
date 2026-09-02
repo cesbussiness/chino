@@ -70,9 +70,11 @@
   }
   .menu-toggle-btn:hover{background:#000;}
 
-  /* Menu panel: on mobile it's always open (normal doc flow, small).
-     On desktop it becomes a collapsible dropdown (see media query below). */
-  .menu-panel{ display:block; }
+  /* Menu panel: collapsed by default on every screen size, toggled by
+     #menuToggleBtn. On mobile it opens inline (normal doc flow); on
+     desktop it becomes a dropdown (see media query below). */
+  .menu-panel{ display:none; }
+  .menu-panel.menu-open{ display:block; }
   nav.tabs{
     display:flex;
     flex-wrap:wrap;
@@ -272,6 +274,10 @@
     margin:0;
     flex-shrink:0;
   }
+  #fcIconWrap .app-icon, #gameIconWrap .app-icon, #tonesIconWrap .app-icon{
+    width:40px;height:40px;
+    margin-bottom:6px;
+  }
   .app-icon-placeholder{
     display:flex;
     align-items:center;
@@ -341,8 +347,8 @@
     padding:20px 0;
   }
   .flashcard{
-    width:280px;
-    min-height:180px;
+    width:min(94vw, 380px);
+    min-height:220px;
     height:auto;
     background:var(--card-bg);
     border:2px solid var(--amarillo-osc);
@@ -355,30 +361,30 @@
     box-shadow:0 4px 16px rgba(0,0,0,.12);
     perspective:800px;
     text-align:center;
-    padding:14px;
+    padding:20px 16px;
   }
-  .flashcard .front-hz{font-size:2.4rem;font-weight:700;}
+  .flashcard .front-hz{font-size:clamp(2.2rem, 10vw, 3.2rem);font-weight:700;}
   .flashcard .back-info{display:none;}
   .flashcard.flipped .front-hz{display:none;}
   .flashcard.flipped .back-info{display:block;}
-  .flashcard .back-info .py{color:var(--azul);font-size:1.1rem;font-weight:700;margin-bottom:6px;}
-  .flashcard .back-info .en{font-size:.9rem;color:var(--gris);}
+  .flashcard .back-info .py{color:var(--azul);font-size:clamp(1.15rem, 4.5vw, 1.4rem);font-weight:700;margin-bottom:8px;}
+  .flashcard .back-info .en{font-size:clamp(1rem, 3.8vw, 1.15rem);color:var(--gris);}
   .practice-controls{display:flex;gap:10px;}
   .practice-controls button{
     border:none;
     background:#222;
     color:var(--amarillo);
-    padding:10px 18px;
+    padding:11px 20px;
     border-radius:22px;
     font-weight:700;
     cursor:pointer;
-    font-size:.85rem;
+    font-size:.95rem;
   }
   .practice-controls button.secondary{
     background:var(--gris-claro);
     color:var(--negro);
   }
-  .progress-txt{font-size:.8rem;color:var(--gris);}
+  .progress-txt{font-size:.85rem;color:var(--gris);}
 
   .lightbox{
     display:none;
@@ -440,8 +446,11 @@
   }
   .level-switch, .mode-switch{
     display:flex;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
     gap:8px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px;
   }
   .level-switch button, .mode-switch button{
     border:1px solid var(--borde);
@@ -450,7 +459,9 @@
     font-weight:600;
     padding:8px 14px;
     border-radius:20px;
-    font-size:.8rem;
+    font-size:.82rem;
+    white-space:nowrap;
+    flex-shrink:0;
     cursor:pointer;
   }
   .level-switch button.active{
@@ -484,18 +495,23 @@
     text-align:center;
   }
   .game-hz{
-    font-size:2.6rem;
+    font-size:clamp(2.2rem, 9vw, 3rem);
     font-weight:700;
     line-height:1.1;
   }
   .game-py{
     color:var(--azul);
     font-weight:600;
-    font-size:1.05rem;
+    font-size:clamp(1.05rem, 4.5vw, 1.3rem);
     margin:4px 0 10px;
   }
+  .game-question .en{
+    font-size:clamp(.95rem, 3.5vw, 1.05rem);
+    color:var(--gris);
+    margin:2px 0 0;
+  }
   .game-instruction{
-    font-size:.85rem;
+    font-size:.9rem;
     color:var(--gris);
     margin:0;
   }
@@ -512,9 +528,9 @@
   .option-btn{
     border:2px solid var(--borde);
     background:#fff;
-    padding:12px 14px;
+    padding:13px 16px;
     border-radius:12px;
-    font-size:.85rem;
+    font-size:clamp(.9rem, 3.5vw, 1.05rem);
     text-align:left;
     cursor:pointer;
     transition:.12s;
@@ -603,14 +619,14 @@
     display:inline-block;
     background:#f4f4f4;
     border-radius:8px;
-    padding:3px 8px;
+    padding:4px 9px;
     margin:2px 3px;
-    font-size:.72rem;
+    font-size:.8rem;
     color:#444;
     line-height:1.5;
   }
   .char-chip b{
-    font-size:.95rem;
+    font-size:1.05rem;
     color:var(--negro);
     margin-right:3px;
   }
@@ -621,7 +637,7 @@
     margin-right:3px;
   }
   .flashcard .back-info .char-breakdown{
-    max-width:250px;
+    max-width:320px;
   }
 
   .trad-badge{
@@ -664,14 +680,14 @@
     background:#eaf3ff;
     border:1px solid #bcd8ff;
     border-radius:8px;
-    padding:3px 8px;
+    padding:4px 9px;
     margin:2px 3px;
-    font-size:.72rem;
+    font-size:.8rem;
     color:#1a4d8f;
     line-height:1.5;
   }
   .group-chip b{
-    font-size:.95rem;
+    font-size:1.05rem;
     color:#0d3a73;
     margin-right:3px;
   }
@@ -724,17 +740,17 @@
     background:#fff;
     border-radius:12px;
     padding:14px 10px;
-    font-size:.85rem;
+    font-size:clamp(.9rem, 3.5vw, 1.05rem);
     text-align:center;
     cursor:pointer;
-    min-height:56px;
+    min-height:60px;
     display:flex;
     align-items:center;
     justify-content:center;
     transition:.12s;
   }
   .match-tile-hz{
-    font-size:1.15rem;
+    font-size:clamp(1.2rem, 5vw, 1.5rem);
     font-weight:700;
   }
   .match-tile:hover:not(:disabled){
@@ -794,7 +810,7 @@
   }
   .tones-options .option-btn{
     font-family:inherit;
-    font-size:.95rem;
+    font-size:clamp(1rem, 4vw, 1.2rem);
     font-weight:600;
     letter-spacing:.02em;
   }
@@ -829,71 +845,20 @@
     border-color:#222;
   }
 
-  /* ============================================================
-     FINAL OVERRIDES — kept at the very end of the stylesheet on
-     purpose so they win the CSS cascade over earlier same-specificity
-     rules above. Goal: a full game round (stats + question + options +
-     feedback + next button) fits in one normal laptop/monitor viewport
-     without scrolling.
-     ============================================================ */
-  #practicaIntroBox{padding:10px 14px;margin-bottom:8px;}
-  #practicaIntroBox h2{font-size:.92rem;margin:0 0 4px;}
-  #practicaIntroBox p{font-size:.78rem;margin:0;line-height:1.4;}
-
-  .practice-toolbar{gap:6px;margin-bottom:8px;}
-  .level-switch, .mode-switch{gap:5px;}
-  .level-switch button, .mode-switch button{padding:5px 10px;font-size:.72rem;}
-  .script-switch{padding:5px 10px;}
-  .script-toggle{font-size:.72rem;gap:6px;}
-  .script-toggle input{width:13px;height:13px;}
-  .section-switch{padding:6px 10px;gap:6px;}
-  #sectionSelect{padding:5px 8px;font-size:.76rem;}
-  #missedBtn{padding:5px 10px;font-size:.72rem;}
-
-  .practice-wrap{padding:6px 0;gap:8px;}
-  .flashcard{width:240px;min-height:110px;padding:8px;}
-  .flashcard .front-hz{font-size:1.7rem;}
-  .flashcard .back-info .py{font-size:.95rem;margin-bottom:3px;}
-  .flashcard .back-info .en{font-size:.78rem;}
-  .practice-controls button{padding:7px 14px;font-size:.76rem;}
-  .progress-txt{font-size:.7rem;}
-
-  .game-wrap{padding:6px 0;gap:6px;}
-  .game-stats{padding:4px 12px;font-size:.72rem;gap:12px;}
-  .game-question{margin:0;}
-  .game-hz{font-size:1.6rem;line-height:1;}
-  .game-py{margin:2px 0 4px;font-size:.85rem;}
-  .game-question .en{font-size:.72rem;}
-  .game-instruction{font-size:.74rem;margin:2px 0;}
-  .game-options{gap:6px;max-width:460px;}
-  .option-btn{padding:7px 10px;font-size:.74rem;border-width:1.5px;}
-  .game-feedback{font-size:.8rem;min-height:1.1em;}
-  #gameNextBtn, #tonesNextBtn{padding:7px 16px;font-size:.76rem;}
-  .app-icon{width:30px;height:30px;margin-bottom:2px;}
-
-  .char-breakdown{margin-top:6px;padding-top:5px;}
-  .cb-label{font-size:.6rem;margin-bottom:4px;}
-  .char-chip, .group-chip{padding:2px 6px;margin:1px 2px;font-size:.64rem;}
-  .char-chip b, .group-chip b{font-size:.8rem;}
-
-  .match-wrap{padding:4px 0;}
-  .match-stats{padding:5px 12px;font-size:.74rem;margin-bottom:8px;}
-  .match-grid{gap:6px;max-width:560px;}
-  .match-tile{padding:8px 6px;min-height:36px;font-size:.72rem;}
-  .match-tile-hz{font-size:.95rem;}
-
-  .game-summary, .match-summary{padding:12px 16px;}
-  .game-summary .big-score{font-size:1.5rem;}
-
-  .speed-control{margin-top:8px;gap:5px;}
-  .speed-control button{padding:4px 9px;font-size:.7rem;}
-
-  @media (min-width:901px){
-    .flashcard{width:260px;}
-    .game-hz{font-size:1.9rem;}
-    .option-btn{font-size:.8rem;padding:8px 12px;}
-    .match-tile{font-size:.78rem;}
+  /* Cuadro de instrucciones de Practica: colapsable (<details>) para no
+     ocupar espacio vertical de forma permanente una vez que ya se leyo. */
+  details.intro-box{padding:12px 16px;}
+  details.intro-box summary{
+    cursor:pointer;
+    font-weight:700;
+    font-size:1rem;
+    list-style:revert;
   }
+  details.intro-box summary::marker{color:var(--amarillo-osc);}
+  details.intro-box p{margin:8px 0 0;}
+  details.intro-box[open] summary{margin-bottom:2px;}
+
+  .practice-toolbar{gap:8px;margin-bottom:10px;}
 
   .voice-control{
     margin-top:8px;

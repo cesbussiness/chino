@@ -131,6 +131,11 @@ selector de voz si el sistema tiene más de una voz china instalada.
    reglas originales del mismo selector → las originales (más grandes) ganaban
    por orden de aparición. Se movieron al final del stylesheet. **Lección**: si
    se separa CSS en archivos, cuidado con el orden de `@import`/concatenación.
+   **Actualización (ver bug #5)**: ese bloque "compacto" movido al final
+   (`FINAL OVERRIDES`) se pasó de rosca y terminó achicando el texto de
+   Práctica en todas las pantallas, no solo donde hacía falta — se eliminó y
+   se reemplazó por tamaños responsivos (`clamp()`) directo en las reglas
+   base, sin necesidad de un segundo bloque compitiendo por especificidad.
 2. **Race condition en `speak()`**: `speechSynthesis.cancel()` seguido
    inmediatamente de `.speak()` en el mismo tick a veces no aplicaba bien el
    nuevo `rate` en Chrome/Edge. Se agregó `setTimeout(..., 60)` entre ambos.
@@ -144,6 +149,27 @@ selector de voz si el sistema tiene más de una voz china instalada.
 4. **iOS Quick Look**: las imágenes se cargaban originalmente vía JS
    (`placeholder` + swap), lo que fallaba si iOS abría el archivo en vista
    previa (sin JS). Se cambió a `<img src="data:...">` directo en el HTML.
+5. **Practica: texto diminuto + demasiado scroll (reportado por el usuario)**.
+   Dos causas independientes, ambas en `src/style.css`:
+   - El bloque `FINAL OVERRIDES` al final del stylesheet (ver bug #1)
+     forzaba fuentes chiquitas (`.font-size:.72rem`–`1.6rem` fijos) en
+     tarjetas, juegos y emparejar **en todas las pantallas** (no estaba
+     dentro de ningún `@media`), de ahí que hiciera falta hacer zoom incluso
+     en desktop. Se borró el bloque entero y se pasaron los tamaños "buenos"
+     directo a las reglas base con `clamp()` para que escalen con el ancho de
+     pantalla en vez de estar fijos.
+   - `.menu-panel{display:block}` mantenía el menú de navegación (con las 7
+     pestañas + control de velocidad de audio) siempre expandido en mobile —
+     en desktop ya era colapsable con el botón ☰. Se unificó: colapsado por
+     defecto en cualquier tamaño de pantalla, el JS del botón ☰ ya tenía toda
+     la lógica de toggle lista y sin usar en mobile.
+   - Extra: `.level-switch`/`.mode-switch` (los botones de nivel y modo de
+     practica) pasaron de `flex-wrap:wrap` (se apilaban en 2-3 filas) a
+     scroll horizontal de una sola fila (`overflow-x:auto` + `white-space:
+     nowrap`), para no gastar alto de pantalla en eso.
+   Verificado con Playwright en viewport de celular (390×844): antes hacía
+   falta scroll incluso con fuente 27px; después el modo tarjetas entra
+   completo sin scroll con fuente ~39px.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
