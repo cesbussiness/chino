@@ -182,6 +182,34 @@ selector de voz si el sistema tiene más de una voz china instalada.
    la palabra/icono a la izquierda, opciones+feedback+boton siguiente a la
    derecha, en vez de todo apilado en una columna angosta con espacio vacio
    a los costados. Mobile no cambia (sigue apilado en una sola columna).
+7. **Auditoria completa de datos (VOCAB/CHAR_DICT/WORD_GROUPS/TONE_GAME_DATA),
+   pedida por el usuario tras notar inconsistencias**. Metodologia: se
+   extrajeron los 4 objetos embebidos en `app.js` a JSON y se cruzaron,
+   programa por programa (no a ojo), contra **CC-CEDICT real** via
+   `pycccedict` (mismo criterio que ya describe este documento), mas
+   reconstruccion caracter-por-caracter desde `CHAR_DICT`+`CHAR_OVERRIDES`
+   para las ~170 palabras/frases que no son entradas de diccionario (botones
+   de UI, frases de banner). Chequeos corridos: consistencia interna de
+   `VOCAB` (mismo hanzi, misma pinyin en todas las secciones donde aparece),
+   `VOCAB` vs `TONE_GAME_DATA` para el mismo hanzi, `VOCAB`/`TONE_GAME_DATA`
+   vs CC-CEDICT y vs reconstruccion por caracter, distractores de
+   `TONE_GAME_DATA` (sin duplicados, ninguno igual a la respuesta correcta),
+   que todo termino de `TONE_GAME_DATA` provenga de un termino real de
+   `VOCAB` (nada inventado), pinyin+significado de `WORD_GROUPS` contra
+   CC-CEDICT, y las 456 entradas de `CHAR_DICT` contra CC-CEDICT.
+   **Resultado**: un solo error real encontrado — `VOCAB` tenia
+   `"香港行貨": "Xiānggǎng xínghuò"` (usando la lectura xíng de 行 = "caminar"),
+   pero `TONE_GAME_DATA` y `WORD_GROUPS` ya tenian la lectura correcta
+   `háng huò` (行貨 = "mercancia autorizada", confirmado en CC-CEDICT) desde
+   el fix del bug #3 — ese fix nunca se habia propagado a `VOCAB`, asi que
+   las tarjetas/juegos enseñaban un tono y el juego de tonos otro para la
+   misma palabra. Corregido en `VOCAB`. Todo lo demas paso limpio: 0
+   inconsistencias internas, 0 discrepancias `VOCAB`↔`TONE_GAME_DATA`
+   restantes, 0 discrepancias contra CC-CEDICT, 0 distractores duplicados o
+   iguales a la respuesta correcta, 0 palabras de `TONE_GAME_DATA` sin
+   respaldo en `VOCAB`. Los casos de tono neutro documentados (友/息/了/乐,
+   ver bug #3 y `CHAR_OVERRIDES` arriba) se re-verificaron contra
+   CC-CEDICT y son correctos como estan.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
