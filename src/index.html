@@ -384,6 +384,10 @@
     </details>
 
     <div class="practice-toolbar">
+      <div class="section-switch" id="sectionSwitchWrap">
+        <label class="section-select-label" for="sectionSelect">Seccion especifica (opcional, anula el nivel de abajo):</label>
+        <select id="sectionSelect"></select>
+      </div>
       <div class="level-switch" id="levelSwitch">
         <button data-level="1" class="active">① Comunes de los menus</button>
         <button data-level="2">② Pantallas principales</button>
@@ -395,10 +399,6 @@
         <button data-mode="game">🎮 Juego: Adivina</button>
         <button data-mode="match">🔗 Juego: Emparejar</button>
         <button data-mode="tones">🎵 Juego: Tonos</button>
-      </div>
-      <div class="section-switch" id="sectionSwitchWrap" style="display:none;">
-        <label class="section-select-label" for="sectionSelect">Seccion a practicar:</label>
-        <select id="sectionSelect"></select>
       </div>
       <div class="script-switch">
         <label class="script-toggle">

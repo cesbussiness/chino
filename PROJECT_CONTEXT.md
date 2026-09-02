@@ -82,14 +82,15 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Juego: Emparejar** — memorama hanzi↔inglés.
 4. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
-   los tonos (para practicar oído tonal). Organizado por las 23 secciones reales
-   (no por los niveles 1/2/3).
+   los tonos (para practicar oído tonal).
 
-Filtros globales: nivel (① comunes / ② pantallas principales / ③ submenús / 🔀
-todo), sección específica (solo en Tonos), **"Solo chino simplificado"**
-(excluye 36 términos tradicionales que vienen del canal HK超市 de JD, marcados
-con badge 繁), y **"📌 Repasar falladas"** (cola de palabras falladas, compartida
-entre los 3 juegos, se vacía cuando las aciertas).
+Filtros globales, aplican a los 4 modos por igual: nivel (① comunes / ②
+pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown
+con las 23 secciones reales — si se elige una, anula el nivel; elegir un
+nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36
+términos tradicionales que vienen del canal HK超市 de JD, marcados con badge
+繁), y **"📌 Repasar falladas"** (cola de palabras falladas, compartida entre
+los 3 juegos, se vacía cuando las aciertas).
 
 Cada palabra de 2-8 caracteres muestra, al voltear/responder:
 - Desglose de significado por carácter individual (`CHAR_DICT`, con excepciones

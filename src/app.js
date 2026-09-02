@@ -325,12 +325,20 @@ function shuffle(arr){
   return arr;
 }
 
+// Si hay una seccion especifica elegida (currentSection !== 'ALL'), esa
+// seccion anula el nivel para las 4 actividades de practica. Si no, el nivel
+// decide el grupo de secciones como antes.
+function resolveSections(level){
+  if(currentSection !== 'ALL') return [currentSection];
+  return LEVEL_MAP[level];
+}
+
 function getPoolIndices(level){
   if(reviewMissedMode){
     const idxs = Array.from(missedIndices);
     return simplifiedOnly ? idxs.filter(i => ALL_TERMS[i].t !== 'trad') : idxs;
   }
-  const sections = LEVEL_MAP[level];
+  const sections = resolveSections(level);
   const idxs = [];
   ALL_TERMS.forEach((t,i)=>{
     if(sections && !sections.includes(t.sectionKey)) return;
@@ -523,6 +531,8 @@ document.getElementById('levelSwitch').addEventListener('click', (e)=>{
   document.querySelectorAll('#levelSwitch button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   currentLevel = Number(btn.getAttribute('data-level'));
+  currentSection = 'ALL';
+  document.getElementById('sectionSelect').value = 'ALL';
   reviewMissedMode = false;
   updateMissedButton();
   refreshCurrentMode();
@@ -544,8 +554,6 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.getElementById('gameMode').style.display = currentMode === 'game' ? '' : 'none';
   document.getElementById('matchMode').style.display = currentMode === 'match' ? '' : 'none';
   document.getElementById('tonesMode').style.display = currentMode === 'tones' ? '' : 'none';
-  document.getElementById('levelSwitch').style.display = currentMode === 'tones' ? 'none' : '';
-  document.getElementById('sectionSwitchWrap').style.display = currentMode === 'tones' ? 'flex' : 'none';
   // free up vertical space in game modes: only show the long explainer for cards mode
   document.getElementById('practicaIntroBox').style.display = currentMode === 'cards' ? '' : 'none';
   refreshCurrentMode();
@@ -555,7 +563,12 @@ document.getElementById('sectionSelect').addEventListener('change', (e)=>{
   currentSection = e.target.value;
   reviewMissedMode = false;
   updateMissedButton();
-  startTonesRound();
+  // si se elige una seccion especifica, ningun boton de nivel manda de verdad
+  // (se restaura el que corresponde a currentLevel si se vuelve a "ALL")
+  document.querySelectorAll('#levelSwitch button').forEach(b=>{
+    b.classList.toggle('active', currentSection === 'ALL' && Number(b.getAttribute('data-level')) === currentLevel);
+  });
+  refreshCurrentMode();
 });
 
 // ---------------------------------------------------------------
@@ -687,12 +700,9 @@ function populateSectionSelect(){
   const sel = document.getElementById('sectionSelect');
   const counts = {};
   ALL_TERMS.forEach(t=>{
-    if(TONE_GAME_DATA[t.h]){
-      counts[t.sectionKey] = (counts[t.sectionKey]||0) + 1;
-    }
+    counts[t.sectionKey] = (counts[t.sectionKey]||0) + 1;
   });
-  const totalAll = Object.values(counts).reduce((a,b)=>a+b,0);
-  let optsHtml = `<option value="ALL">🔀 Todas las secciones (${totalAll})</option>`;
+  let optsHtml = `<option value="ALL">🔀 Todas las secciones (${ALL_TERMS.length})</option>`;
   Object.keys(VOCAB.data).forEach(sec=>{
     if(counts[sec] > 0){
       optsHtml += `<option value="${sec}">${VOCAB.titles[sec]} (${counts[sec]})</option>`;
@@ -707,10 +717,11 @@ function getTonesPoolIndices(){
     if(simplifiedOnly) idxs = idxs.filter(i => ALL_TERMS[i].t !== 'trad');
     return idxs;
   }
+  const sections = resolveSections(currentLevel);
   const idxs = [];
   ALL_TERMS.forEach((t,i)=>{
     if(!TONE_GAME_DATA[t.h]) return;
-    if(currentSection !== 'ALL' && t.sectionKey !== currentSection) return;
+    if(sections && !sections.includes(t.sectionKey)) return;
     if(simplifiedOnly && t.t === 'trad') return;
     idxs.push(i);
   });
