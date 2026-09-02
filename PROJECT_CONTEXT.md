@@ -170,6 +170,17 @@ selector de voz si el sistema tiene más de una voz china instalada.
    Verificado con Playwright en viewport de celular (390×844): antes hacía
    falta scroll incluso con fuente 27px; después el modo tarjetas entra
    completo sin scroll con fuente ~39px.
+6. **`.tones-wrap` sin estilos propios**: a diferencia de `.game-wrap`
+   (Adivina), el contenedor del juego de Tonos nunca tuvo la regla de
+   flex/centrado — en pantallas anchas eso hacía que las opciones quedaran
+   pegadas al margen izquierdo mientras la palabra arriba sí se veía
+   centrada (bug reportado por el usuario junto con el pedido de mejorar el
+   layout). Se agregó `.tones-wrap` a la regla compartida con `.game-wrap`.
+   De paso, a pedido del usuario, en desktop (`min-width:901px`) Adivina y
+   Tonos pasan a un layout de 2 columnas via CSS Grid (`grid-template-areas`):
+   la palabra/icono a la izquierda, opciones+feedback+boton siguiente a la
+   derecha, en vez de todo apilado en una columna angosta con espacio vacio
+   a los costados. Mobile no cambia (sigue apilado en una sola columna).
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 

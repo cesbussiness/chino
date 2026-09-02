@@ -474,7 +474,7 @@
     border-color:#222;
   }
 
-  .game-wrap{
+  .game-wrap, .tones-wrap{
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -524,6 +524,34 @@
   }
   @media (max-width:480px){
     .game-options{grid-template-columns:1fr;}
+  }
+
+  /* Desktop: la palabra a la izquierda y las opciones a la derecha en vez de
+     todo apilado en una columna angosta con espacio vacio a los costados. */
+  @media (min-width:901px){
+    .game-wrap, .tones-wrap{
+      display:grid;
+      grid-template-columns:minmax(220px, 280px) 1fr;
+      grid-template-areas:
+        "stats stats"
+        "question instruction"
+        "question options"
+        "question feedback"
+        "question next"
+        "summary summary";
+      column-gap:36px;
+      row-gap:10px;
+      max-width:760px;
+      margin:0 auto;
+      padding:20px 0;
+    }
+    .game-stats{grid-area:stats;justify-self:center;}
+    .game-question{grid-area:question;align-self:center;justify-self:center;}
+    .game-instruction{grid-area:instruction;margin:0 0 2px;}
+    .game-options{grid-area:options;max-width:100%;}
+    .game-feedback{grid-area:feedback;}
+    #gameNextBtn, #tonesNextBtn{grid-area:next;}
+    .game-summary{grid-area:summary;justify-self:center;}
   }
   .option-btn{
     border:2px solid var(--borde);
