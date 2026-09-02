@@ -23,13 +23,14 @@ agrupaciones de palabras o tonos.
   `<link>`/`<script src>`). `index.html` sigue teniendo las imágenes e iconos
   embebidos como `data:` URIs directo en el HTML (por el bug de iOS Quick
   Look, ver más abajo), así que sigue pesando ~2.2 MB.
-- **No hay build script todavía**: por ahora `src/index.html` NO es
-  autocontenido para distribuir (depende de `style.css` y `app.js` al lado).
-  El archivo monolítico único (`Guia_Meituan_Chino_Interactiva.html`, para
-  abrir con doble clic o mandar por WhatsApp/mail) se borró del repo al hacer
-  el split — si se necesita de nuevo, hay que armar el build script de la
-  sección "Sugerencia" más abajo (paso 2) para regenerarlo concatenando
-  `src/`.
+- **Build script**: `node build.js` (sin dependencias, Node nativo) lee
+  `src/index.html` + `src/style.css` + `src/app.js` e injerta el CSS/JS
+  inline de vuelta, generando `dist/Guia_Meituan_Chino_Interactiva.html` — el
+  único archivo autocontenido para abrir con doble clic o mandar por
+  WhatsApp/mail. Verificado byte a byte contra el HTML monolítico original
+  (antes de que se borrara del repo). `dist/` está en `.gitignore` (es
+  artefacto generado) — correr el build después de cualquier cambio en
+  `src/` antes de distribuir.
 - Antes de esto, todo el desarrollo fue **iterativo por chat**: cada cambio
   era un parche de texto (Python `str.replace`) directamente sobre el HTML
   monolítico. Eso se estaba poniendo frágil (bugs de cascada CSS por orden de
@@ -164,16 +165,15 @@ generación de preguntas de tonos) ya está hecho y exportado en `data/` y
 
 1. ~~`git init`, commit inicial con este export tal cual~~ — hecho.
 2. ~~Separar el HTML monolítico en `src/index.html` + `src/style.css` +
-   `src/app.js`~~ — hecho. Falta la segunda mitad de este paso: un script de
-   build (`build.py` o `build.js`) que genere un HTML único distribuible
-   (para abrir con doble clic / mandar sin depender de 3 archivos juntos) a
-   partir de `src/`. Los JSON de `data/` y las imágenes de `assets/`
+   `src/app.js`, y un script de build~~ — hecho (`build.js`, ver "Estado
+   actual" arriba). Los JSON de `data/` y las imágenes de `assets/`
    mencionados en la estructura original de este export nunca llegaron a
-   subirse al repo — de encontrarse, el build también debería inyectarlos en
-   vez de mantenerlos embebidos a mano dentro de `app.js`/`index.html`.
+   subirse al repo — de encontrarse, tendría sentido que `build.js` también
+   los inyecte en vez de mantenerlos embebidos a mano dentro de
+   `app.js`/`index.html`.
 3. A partir de ahí, cualquier cambio futuro (nuevo juego, nueva app, fix de
-   dato) se hace en los archivos fuente (`src/`) + se corre el build cuando
-   exista, no con parches de texto sobre un HTML gigante.
+   dato) se hace en los archivos fuente (`src/`) + se corre `node build.js`,
+   no con parches de texto sobre un HTML gigante.
 
 ## Preferencias del usuario a mantener
 
