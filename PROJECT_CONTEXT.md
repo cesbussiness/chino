@@ -197,19 +197,53 @@ selector de voz si el sistema tiene más de una voz china instalada.
    que todo termino de `TONE_GAME_DATA` provenga de un termino real de
    `VOCAB` (nada inventado), pinyin+significado de `WORD_GROUPS` contra
    CC-CEDICT, y las 456 entradas de `CHAR_DICT` contra CC-CEDICT.
-   **Resultado**: un solo error real encontrado — `VOCAB` tenia
-   `"香港行貨": "Xiānggǎng xínghuò"` (usando la lectura xíng de 行 = "caminar"),
-   pero `TONE_GAME_DATA` y `WORD_GROUPS` ya tenian la lectura correcta
-   `háng huò` (行貨 = "mercancia autorizada", confirmado en CC-CEDICT) desde
-   el fix del bug #3 — ese fix nunca se habia propagado a `VOCAB`, asi que
-   las tarjetas/juegos enseñaban un tono y el juego de tonos otro para la
-   misma palabra. Corregido en `VOCAB`. Todo lo demas paso limpio: 0
-   inconsistencias internas, 0 discrepancias `VOCAB`↔`TONE_GAME_DATA`
-   restantes, 0 discrepancias contra CC-CEDICT, 0 distractores duplicados o
-   iguales a la respuesta correcta, 0 palabras de `TONE_GAME_DATA` sin
-   respaldo en `VOCAB`. Los casos de tono neutro documentados (友/息/了/乐,
-   ver bug #3 y `CHAR_OVERRIDES` arriba) se re-verificaron contra
-   CC-CEDICT y son correctos como estan.
+   **Resultado de la primera pasada**: un solo error encontrado —
+   `VOCAB` tenia `"香港行貨": "Xiānggǎng xínghuò"` (leyendo 行 como xíng =
+   "caminar"), pero `TONE_GAME_DATA` y `WORD_GROUPS` ya tenian la lectura
+   correcta `háng huò` (行貨 = "mercancia autorizada", confirmado en
+   CC-CEDICT) desde el fix del bug #3 — nunca se habia propagado a `VOCAB`.
+   Corregido.
+
+   **El usuario reviso el resultado el mismo y encontro un segundo caso del
+   mismo patron** que mi primera pasada habia descartado mal: `VOCAB` tenia
+   `"直播中": "zhíbò zhōng"` (播 en 4to tono), un typo viejo — el propio bug
+   #3 ya documentaba "直播(bō, era typo bò)" corregido en `TONE_GAME_DATA`
+   (`"zhí bō zhōng"`) y en el otro termino de `VOCAB` que tambien usa 直播
+   (`"美团直播": "Měituán zhíbō"`), pero **nunca se propago a este segundo
+   termino con el mismo caracter**. Confirmado contra CC-CEDICT (直播 =
+   "zhi2 bo1") y corregido.
+
+   **Segunda pasada, mas estricta** (a pedido del usuario: "revisa todas"):
+   en vez de comparar strings completos (que generaba falsos descartes por
+   digitos/texto en latin mezclados en el hanzi, como en la primera pasada),
+   se validó **caracter por caracter** — para cada hanzi de las 231 palabras
+   unicas de `VOCAB` y las 217 de `TONE_GAME_DATA` se busca su silaba
+   esperada (`CHAR_OVERRIDES` > `CHAR_DICT`) dentro del pinyin guardado, en
+   orden, tomando siempre la coincidencia mas cercana (evita que una silaba
+   igual mas adelante en la palabra tape una diferencia real, que es
+   exactamente el tipo de bug que causo el falso descarte del caso de 直播
+   en la primera pasada). Se corrio tambien sobre los 243 pares de
+   `WORD_GROUPS`, se verifico que **todos** los distractores de
+   `TONE_GAME_DATA` comparten exactamente las mismas letras y cantidad de
+   silabas que la respuesta correcta (solo cambian los tonos, como pide el
+   diseño del juego), y se buscaron claves JS duplicadas (que se
+   sobrescriben en silencio) en los 4 objetos — 0 encontradas. Resultado:
+   **0 problemas restantes** en las 456+256+243+217 entradas. Los casos de
+   tono neutro documentados (友/息/了/乐/欢-en-喜欢/分-en-部分, ver bug #3 y
+   `CHAR_OVERRIDES` arriba) se re-verificaron contra CC-CEDICT y son
+   correctos como estan — no son bugs, son el tono neutro real de esas
+   palabras.
+
+   **Leccion para el futuro**: cuando se corrige el tono de un caracter en
+   una palabra, buscar TODAS las apariciones de ese caracter en `VOCAB`,
+   `WORD_GROUPS` y `TONE_GAME_DATA` (no solo donde se detecto el error) —
+   los dos bugs de esta auditoria fueron exactamente eso: un fix aplicado en
+   un lugar que no se propago al resto.
+
+   El script quedo en `tools/audit/audit_vocab.py` (necesita
+   `pip install pycccedict`) — correrlo (`python3 tools/audit/audit_vocab.py`)
+   despues de cualquier cambio a pinyin/tonos en `src/app.js`, antes de
+   distribuir una nueva version.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
