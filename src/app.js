@@ -125,6 +125,7 @@ document.getElementById('speedControl').addEventListener('click', (e)=>{
 });
 
 function speak(text){
+  if(!text) return; // "Jugar de nuevo" buttons reuse .speak-btn for styling but have no data-hz
   const clean = text.replace(/[（(].*?[）)]/g,''); // strip parentheticals just in case
   if(!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined'){
     showSpeechToast();
@@ -518,6 +519,7 @@ function refreshCurrentMode(){
   else if(currentMode === 'game'){ startGameRound(); }
   else if(currentMode === 'match'){ startMatchRound(); }
   else if(currentMode === 'tones'){ startTonesRound(); }
+  else if(currentMode === 'write'){ startWriteRound(); }
 }
 
 document.getElementById('simplifiedOnlyToggle').addEventListener('change', (e)=>{
@@ -554,6 +556,7 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.getElementById('gameMode').style.display = currentMode === 'game' ? '' : 'none';
   document.getElementById('matchMode').style.display = currentMode === 'match' ? '' : 'none';
   document.getElementById('tonesMode').style.display = currentMode === 'tones' ? '' : 'none';
+  document.getElementById('writeMode').style.display = currentMode === 'write' ? '' : 'none';
   // free up vertical space in game modes: only show the long explainer for cards mode
   document.getElementById('practicaIntroBox').style.display = currentMode === 'cards' ? '' : 'none';
   refreshCurrentMode();
@@ -837,6 +840,160 @@ function showTonesSummary(){
 
 document.getElementById('tonesSpeak').addEventListener('click', ()=>{
   speak(document.getElementById('tonesHz').getAttribute('data-hz'));
+});
+
+// ---------------------------------------------------------------
+// Handwriting / stroke-order practice (HanziWriter, data in hanzi-data.js)
+// ---------------------------------------------------------------
+const WRITE_ROUND_SIZE = 12;
+let writeQueue = [];
+let writeQIndex = 0;
+let writeChars = [];
+let writeCharIndex = 0;
+let writeWordMistakes = 0;
+let writeTotalMistakes = 0;
+let writeWriter = null;
+
+function hanziCharDataLoader(char, onLoad, onError){
+  const data = HANZI_STROKE_DATA[char];
+  if(data) onLoad(data);
+  else onError('sin datos de trazos para ' + char);
+}
+
+function ensureWriteWriter(){
+  if(writeWriter) return writeWriter;
+  writeWriter = HanziWriter.create('writeTarget', '一', {
+    width: 260,
+    height: 260,
+    padding: 14,
+    showCharacter: false,
+    showOutline: true,
+    strokeAnimationSpeed: 1,
+    delayBetweenStrokes: 200,
+    highlightColor: '#2f6fed',
+    drawingColor: '#222',
+    charDataLoader: hanziCharDataLoader,
+  });
+  return writeWriter;
+}
+
+function hasWritableChar(hz){
+  return [...hz].some(ch => HANZI_STROKE_DATA[ch]);
+}
+
+function setWriteUiState(state){
+  const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
+  show('writeQuestion', state === 'active');
+  show('writeCharProgress', state === 'active');
+  show('writeTarget', state === 'active');
+  show('writeControls', state === 'active');
+  show('writeNextBtn', false);
+  show('writeNoWords', state === 'empty');
+  document.getElementById('writeSummary').style.display = state === 'summary' ? 'block' : 'none';
+}
+
+function startWriteRound(){
+  const pool = reviewMissedMode
+    ? Array.from(missedIndices).filter(i => hasWritableChar(ALL_TERMS[i].h) && (!simplifiedOnly || ALL_TERMS[i].t !== 'trad'))
+    : getPoolIndices(currentLevel).filter(i => hasWritableChar(ALL_TERMS[i].h));
+  const size = Math.min(WRITE_ROUND_SIZE, pool.length);
+  writeQueue = shuffle([...pool]).slice(0, size);
+  writeQIndex = 0;
+  writeTotalMistakes = 0;
+  document.getElementById('writeMistakes').textContent = '0';
+  if(writeQueue.length === 0){
+    setWriteUiState('empty');
+    return;
+  }
+  showWriteWord();
+}
+
+function showWriteWord(){
+  setWriteUiState('active');
+  const term = ALL_TERMS[writeQueue[writeQIndex]];
+  writeChars = [...term.h].filter(ch => HANZI_STROKE_DATA[ch]);
+  writeCharIndex = 0;
+  writeWordMistakes = 0;
+  document.getElementById('writePy').innerHTML = term.p + tradBadge(term.t);
+  document.getElementById('writeEn').textContent = term.e;
+  document.getElementById('writeWordProgress').textContent = `Palabra ${writeQIndex+1} de ${writeQueue.length}`;
+  document.getElementById('writeSpeak').setAttribute('data-current', term.h);
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('writeIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  showWriteChar();
+}
+
+function quizCurrentChar(){
+  writeWriter.quiz({
+    showHintAfterMisses: 3,
+    onMistake(){
+      writeWordMistakes++;
+      writeTotalMistakes++;
+      document.getElementById('writeMistakes').textContent = writeTotalMistakes;
+    },
+    onComplete(){
+      writeCharIndex++;
+      if(writeCharIndex < writeChars.length){
+        setTimeout(showWriteChar, 500);
+      }else{
+        onWriteWordDone();
+      }
+    },
+  });
+}
+
+function showWriteChar(){
+  const ch = writeChars[writeCharIndex];
+  document.getElementById('writeCharProgress').textContent = writeChars.length > 1
+    ? `Caracter ${writeCharIndex+1} de ${writeChars.length}: ${ch}`
+    : `Caracter: ${ch}`;
+  ensureWriteWriter().setCharacter(ch).then(quizCurrentChar);
+}
+
+function onWriteWordDone(){
+  const term = ALL_TERMS[writeQueue[writeQIndex]];
+  if(writeWordMistakes === 0) removeMissed(term);
+  else addMissed(term);
+  document.getElementById('writeCharProgress').textContent = '¡Palabra completa! ✅';
+  document.getElementById('writeNextBtn').style.display = 'inline-block';
+}
+
+document.getElementById('writeNextBtn').addEventListener('click', ()=>{
+  writeQIndex++;
+  if(writeQIndex >= writeQueue.length){
+    showWriteSummary();
+  }else{
+    showWriteWord();
+  }
+});
+
+function showWriteSummary(){
+  setWriteUiState('summary');
+  const avg = (writeTotalMistakes / Math.max(1, writeQueue.length)).toFixed(1);
+  document.getElementById('writeSummary').innerHTML = `
+    <div class="big-score">${writeQueue.length} palabras</div>
+    <p>${writeTotalMistakes} trazos con error en total (${avg} por palabra)</p>
+    <button id="writeReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Practicar de nuevo</button>
+  `;
+  document.getElementById('writeReplayBtn').addEventListener('click', startWriteRound);
+}
+
+document.getElementById('writeSpeak').addEventListener('click', ()=>{
+  speak(document.getElementById('writeSpeak').getAttribute('data-current'));
+});
+
+document.getElementById('writeRedoBtn').addEventListener('click', ()=>{
+  if(!writeWriter) return;
+  writeWriter.cancelQuiz();
+  quizCurrentChar();
+});
+
+document.getElementById('writeHintBtn').addEventListener('click', ()=>{
+  if(!writeWriter) return;
+  writeWriter.cancelQuiz();
+  writeWriter.animateCharacter({ onComplete: quizCurrentChar });
 });
 
 // init

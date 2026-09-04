@@ -399,6 +399,7 @@
         <button data-mode="game">🎮 Juego: Adivina</button>
         <button data-mode="match">🔗 Juego: Emparejar</button>
         <button data-mode="tones">🎵 Juego: Tonos</button>
+        <button data-mode="write">✍️ Practicar escritura</button>
       </div>
       <div class="script-switch">
         <label class="script-toggle">
@@ -472,6 +473,29 @@
       <button id="tonesNextBtn" style="display:none;">Siguiente pregunta ▶</button>
       <div class="game-summary" id="tonesSummary" style="display:none;"></div>
     </div>
+
+    <!-- Handwriting / stroke-order practice -->
+    <div class="write-wrap" id="writeMode" style="display:none;">
+      <div class="game-stats">
+        <span id="writeWordProgress">Palabra 1</span>
+        <span>✏️ Errores: <b id="writeMistakes">0</b></span>
+      </div>
+      <div class="game-question" id="writeQuestion">
+        <div id="writeIconWrap"></div>
+        <div class="py" id="writePy">Měituán</div>
+        <div class="en" id="writeEn">Meituan (app name)</div>
+        <button class="speak-btn" id="writeSpeak">🔊 Escuchar</button>
+      </div>
+      <p class="game-instruction" id="writeCharProgress">Caracter 1 de 1</p>
+      <div id="writeTarget" class="write-target"></div>
+      <div class="practice-controls" id="writeControls">
+        <button class="secondary" id="writeHintBtn">💡 Ver como se escribe</button>
+        <button class="secondary" id="writeRedoBtn">↺ Repetir</button>
+      </div>
+      <button id="writeNextBtn" style="display:none;">Siguiente palabra ▶</button>
+      <p id="writeNoWords" style="display:none;color:#999;text-align:center;">No hay palabras con datos de trazos en este filtro.</p>
+      <div class="game-summary" id="writeSummary" style="display:none;"></div>
+    </div>
   </section>
 
 </main>
@@ -486,6 +510,8 @@
   interfaz sujeto a cambios por parte del desarrollador de la app.
 </footer>
 
+<script src="hanzi-writer.min.js"></script>
+<script src="hanzi-data.js"></script>
 <script src="app.js"></script>
 
 </body>

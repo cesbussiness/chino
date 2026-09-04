@@ -18,19 +18,21 @@ agrupaciones de palabras o tonos.
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
   (split hecho en Claude Code, verificado byte a byte contra el HTML
-  monolítico original antes de borrarlo — reconstruir las 3 piezas da
-  exactamente el archivo viejo, solo cambian `<style>`/`<script>` inline por
-  `<link>`/`<script src>`). `index.html` sigue teniendo las imágenes e iconos
-  embebidos como `data:` URIs directo en el HTML (por el bug de iOS Quick
-  Look, ver más abajo), así que sigue pesando ~2.2 MB.
+  monolítico original antes de borrarlo — reconstruir las 3 piezas daba
+  exactamente el archivo viejo). `index.html` sigue teniendo las imágenes e
+  iconos embebidos como `data:` URIs directo en el HTML (por el bug de iOS
+  Quick Look, ver más abajo). También vive ahi `src/hanzi-writer.min.js`
+  (libreria vendorizada) + `src/hanzi-data.js` (datos de trazos), para
+  Practicar escritura — ver "Qué hace la guía" arriba. Todo junto, el HTML
+  final pesa ~3.5 MB.
 - **Build script**: `node build.js` (sin dependencias, Node nativo) lee
-  `src/index.html` + `src/style.css` + `src/app.js` e injerta el CSS/JS
-  inline de vuelta, generando `dist/Guia_Meituan_Chino_Interactiva.html` — el
-  único archivo autocontenido para abrir con doble clic o mandar por
-  WhatsApp/mail. Verificado byte a byte contra el HTML monolítico original
-  (antes de que se borrara del repo). `dist/` está en `.gitignore` (es
-  artefacto generado) — correr el build después de cualquier cambio en
-  `src/` antes de distribuir.
+  `src/index.html` e inyecta inline cualquier `<link rel="stylesheet">` y
+  `<script src>` local que encuentre (hoy: `style.css`, `hanzi-writer.min.js`,
+  `hanzi-data.js`, `app.js`, en ese orden), generando
+  `dist/Guia_Meituan_Chino_Interactiva.html` — el único archivo autocontenido
+  para abrir con doble clic o mandar por WhatsApp/mail. `dist/` está en
+  `.gitignore` (es artefacto generado) — correr el build después de
+  cualquier cambio en `src/` antes de distribuir.
 - Antes de esto, todo el desarrollo fue **iterativo por chat**: cada cambio
   era un parche de texto (Python `str.replace`) directamente sobre el HTML
   monolítico. Eso se estaba poniendo frágil (bugs de cascada CSS por orden de
@@ -76,21 +78,33 @@ abajo antes de tocar esos archivos.
 Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de iconos) ·
 外卖 Delivery · 京东 JD/HK超市 · 🔗 En común · Glosario completo · Práctica.
 
-**Práctica** tiene 4 modos, todos comparten nivel/sección + filtro de escritura:
+**Práctica** tiene 5 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
    + desglose de caracteres.
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Juego: Emparejar** — memorama hanzi↔inglés.
 4. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
    los tonos (para practicar oído tonal).
+5. **✍️ Practicar escritura** — orden de trazos real por carácter (via
+   [Hanzi Writer](https://chanind.github.io/hanzi-writer), vendorizado offline
+   en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Toma una palabra del
+   filtro activo, hace la quiz de trazos caracter por caracter sobre una
+   cuadricula estilo 米字格, cuenta errores, y sigue a la siguiente palabra
+   hasta completar una ronda de 12. "💡 Ver como se escribe" reproduce la
+   animacion de trazos y vuelve al quiz; "↺ Repetir" reinicia el caracter
+   actual. Cubre 455 de los 456 caracteres de `CHAR_DICT` (falta 咁, prestamo
+   cantones sin caracter Han estandar — se salta esa palabra si no queda
+   ningun otro caracter practicable). Datos: proyecto Make Me a Hanzi via
+   `hanzi-writer-data`, licencia Arphic Public License (ver `ARPHICPL.TXT`
+   en ese repo) — libre para redistribuir/modificar reteniendo la licencia.
 
-Filtros globales, aplican a los 4 modos por igual: nivel (① comunes / ②
+Filtros globales, aplican a los 5 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown
 con las 23 secciones reales — si se elige una, anula el nivel; elegir un
 nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36
 términos tradicionales que vienen del canal HK超市 de JD, marcados con badge
 繁), y **"📌 Repasar falladas"** (cola de palabras falladas, compartida entre
-los 3 juegos, se vacía cuando las aciertas).
+los 4 juegos, se vacía cuando las aciertas).
 
 Cada palabra de 2-8 caracteres muestra, al voltear/responder:
 - Desglose de significado por carácter individual (`CHAR_DICT`, con excepciones
@@ -244,6 +258,15 @@ selector de voz si el sistema tiene más de una voz china instalada.
    `pip install pycccedict`) — correrlo (`python3 tools/audit/audit_vocab.py`)
    despues de cualquier cambio a pinyin/tonos en `src/app.js`, antes de
    distribuir una nueva version.
+8. **`speak(null)` tiraba excepcion**: los botones "🔁 Jugar de nuevo" (match/
+   adivina/tonos, y ahora escritura) reusan la clase `.speak-btn` solo por el
+   estilo (pildora gris), pero no tienen `data-hz` — el listener global
+   delegado en `document` (`.speak-btn` click → `speak(btn.dataset.hz)`) los
+   agarra igual y crasheaba en `text.replace(...)` con `text === null`. No
+   rompia el reinicio de la ronda (son listeners independientes) pero tiraba
+   un error en consola en cada "Jugar de nuevo". Encontrado al probar el
+   replay de Practicar escritura. Fix: `speak()` ahora hace `if(!text) return;`
+   al inicio.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
