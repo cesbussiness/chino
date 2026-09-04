@@ -394,10 +394,17 @@
     flex-direction:column;
     align-items:center;
     width:100%;
+    gap:14px;
   }
   .write-info-col{
     width:100%;
+    max-width:420px;
     text-align:center;
+    background:var(--card-bg);
+    border:1px solid var(--borde);
+    border-radius:16px;
+    padding:16px 18px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
   }
   .write-target-col{
     display:flex;
@@ -409,53 +416,119 @@
       flex-direction:row;
       align-items:flex-start;
       justify-content:center;
-      gap:32px;
-      max-width:640px;
+      gap:28px;
+      max-width:680px;
       margin:0 auto;
     }
     .write-info-col{
-      width:280px;
+      width:320px;
       flex-shrink:0;
       text-align:left;
-      padding-top:8px;
     }
-    .write-info-col .game-question{text-align:left;}
+    .write-info-col .write-word-info{text-align:left;align-items:flex-start;}
     .write-info-col .app-icon{margin:0 0 8px !important;}
     .write-info-col .write-char-detail{text-align:left;}
     .write-info-col .cb-label{text-align:left;}
   }
 
-  /* Handwriting practice: pinyin+significado+radicales del caracter actual */
+  /* Info de la palabra (arriba de la tarjeta de info) */
+  .write-word-info{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-bottom:12px;
+    margin-bottom:12px;
+    border-bottom:1px dashed var(--borde);
+  }
+  .write-word-py{
+    color:var(--azul);
+    font-weight:700;
+    font-size:1.3rem;
+  }
+  .write-word-en{
+    color:var(--gris);
+    font-size:1.05rem;
+    margin-top:2px;
+  }
+
+  /* Info del caracter actual: pinyin+significado+radicales, formato "moderno" */
   .write-char-detail{
     text-align:center;
-    margin:2px 0 4px;
+  }
+  .write-char-progress{
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--gris);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    margin-bottom:6px;
+  }
+  .write-char-progress b{
+    font-size:1.3rem;
+    color:var(--negro);
+    text-transform:none;
+    letter-spacing:0;
+    margin-left:4px;
   }
   .write-char-py{
     color:var(--azul);
     font-weight:700;
-    font-size:1.05rem;
+    font-size:1.5rem;
+    line-height:1.3;
   }
   .write-char-en{
-    color:var(--gris);
-    font-size:.95rem;
+    color:var(--negro);
+    font-size:1.15rem;
+    margin-bottom:4px;
   }
-  .write-char-detail .char-breakdown{
-    border-top:none;
-    margin-top:6px;
-    padding-top:0;
+  .write-char-detail .cb-label{
+    font-size:.75rem;
+    margin-top:8px;
   }
+  .write-char-detail .char-chip{
+    font-size:.92rem;
+    padding:6px 11px;
+    margin:3px 4px 3px 0;
+  }
+  .write-char-detail .char-chip b{font-size:1.2rem;}
   .char-chip.radical-chip{
     background:#fff3cd;
     border:1px solid var(--amarillo-osc);
   }
   .radical-tag{
     display:inline-block;
-    font-size:.6rem;
+    font-size:.65rem;
     font-weight:700;
     text-transform:uppercase;
     color:#7a5b00;
-    margin-left:3px;
+    margin-left:4px;
   }
+
+  /* Fila de navegacion: Atras — Escuchar — Adelante, debajo del dibujo */
+  .write-nav-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:12px 0 8px;
+  }
+  .write-nav-row button{
+    border:none;
+    border-radius:20px;
+    font-weight:700;
+    cursor:pointer;
+    padding:10px 16px;
+    font-size:.9rem;
+  }
+  .write-nav-row .secondary{
+    background:var(--gris-claro);
+    color:var(--negro);
+  }
+  .write-nav-row .secondary:disabled{
+    opacity:.4;
+    cursor:default;
+  }
+  .write-nav-row .speak-btn{margin-top:0;}
 
   /* Handwriting practice: 米字格-style guide grid (cross + corner-to-corner
      diagonals), like traditional Chinese character practice paper. */

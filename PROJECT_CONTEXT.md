@@ -88,12 +88,16 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    los tonos (para practicar oído tonal).
 5. **✍️ Practicar escritura** — orden de trazos real por carácter (via
    [Hanzi Writer](https://chanind.github.io/hanzi-writer), vendorizado offline
-   en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Toma una palabra del
-   filtro activo, hace la quiz de trazos caracter por caracter sobre una
-   cuadricula estilo 米字格, cuenta errores, y sigue a la siguiente palabra
-   hasta completar una ronda de 12. "💡 Ver como se escribe" reproduce la
-   animacion de trazos y vuelve al quiz; "↺ Repetir" reinicia el caracter
-   actual. Cubre 455 de los 456 caracteres de `CHAR_DICT` (falta 咁, prestamo
+   en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Arma una ronda de 12
+   palabras del filtro activo y las aplana en una secuencia unica de
+   caracteres (`writeSequence`); navegacion 100% manual con "◀ Atras" /
+   "Adelante ▶" debajo del dibujo (nada de auto-avance al completar un
+   caracter — el usuario decide cuando pasar al siguiente, incluso cruzando
+   de una palabra a otra). "💡 Ver como se escribe" reproduce la animacion de
+   trazos y vuelve al quiz; "↺ Repetir" reinicia el caracter actual. Al salir
+   de una palabra hacia adelante se decide si va a la cola de "falladas"
+   segun si tuvo algun error mientras se practicaba. Cubre 455 de los 456
+   caracteres de `CHAR_DICT` (falta 咁, prestamo
    cantones sin caracter Han estandar — se salta esa palabra si no queda
    ningun otro caracter practicable). Datos: proyecto Make Me a Hanzi via
    `hanzi-writer-data`, licencia Arphic Public License (ver `ARPHICPL.TXT`
@@ -123,6 +127,24 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    scroll (`.write-practice-area` con `flex-direction:row` en desktop,
    ver bug/mejora de layout de Adivina/Tonos mas arriba, mismo criterio
    general de "evitar scroll en las vistas de pc").
+9. **"Repetir" rompia el dibujo tras completar una palabra**: el diseño
+   original tenia, por palabra, un indice `writeCharIndex` + auto-avance al
+   completar cada caracter (`setTimeout`) y un boton "Siguiente palabra" que
+   aparecia recien al terminar todos los caracteres. Una vez ahi,
+   `writeCharIndex` quedaba apuntando **fuera** de la lista de caracteres de
+   esa palabra (ya se habian recorrido todos) pero "Repetir"/"Ver como se
+   escribe" seguian visibles y clickeables — al tocarlos se llamaba
+   `HanziWriter.create(..., undefined, ...)`, lo que limpiaba el lienzo
+   (`innerHTML=''`) y fallaba, dejando el recuadro en blanco (bug reportado
+   por el usuario). Se rediseño la navegacion entera: en vez de indices
+   por-palabra + auto-avance, toda la ronda se aplana a una sola secuencia
+   de caracteres (`writeSequence`) recorrida con "Atras"/"Adelante"
+   manuales — no existe mas un estado "completo pero fuera de rango", asi
+   que la clase entera de bug desaparece (`writeSeqPos` siempre apunta a un
+   caracter valido). De paso, a pedido del usuario: el audio ahora esta
+   entre "Atras" y "Adelante" debajo del dibujo, y los textos de pinyin/
+   significado/radicales del panel izquierdo se agrandaron notablemente
+   (antes eran chicos y dificiles de leer).
 
 Filtros globales, aplican a los 5 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown

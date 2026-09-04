@@ -845,12 +845,20 @@ document.getElementById('tonesSpeak').addEventListener('click', ()=>{
 // ---------------------------------------------------------------
 // Handwriting / stroke-order practice (HanziWriter, data in hanzi-data.js)
 // ---------------------------------------------------------------
+// Navigation is a flat, manual sequence of {termIdx, ch} pairs across every
+// writable character of every word in the round — no auto-advance. "Atras"/
+// "Adelante" just move writeSeqPos; landing on a new position (re)creates
+// the writer for that character. This also sidesteps the bug where the old
+// per-word writeCharIndex could point past the end of the current word's
+// characters once it was "done" (waiting on a since-removed Next button),
+// so pressing "Repetir" tried to create a writer for an undefined character
+// and blanked the canvas.
 const WRITE_ROUND_SIZE = 12;
 let writeQueue = [];
-let writeQIndex = 0;
-let writeChars = [];
-let writeCharIndex = 0;
-let writeWordMistakes = 0;
+let writeSequence = [];
+let writeSeqPos = 0;
+let writeWordMistakeCounts = {};
+let writeFinalizedWords = new Set();
 let writeTotalMistakes = 0;
 let writeWriter = null;
 
@@ -888,9 +896,16 @@ function hasWritableChar(hz){
 function setWriteUiState(state){
   const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
   show('writePracticeArea', state === 'active');
-  show('writeNextBtn', false);
   show('writeNoWords', state === 'empty');
   document.getElementById('writeSummary').style.display = state === 'summary' ? 'block' : 'none';
+}
+
+function buildWriteSequence(pool){
+  const seq = [];
+  pool.forEach(termIdx => {
+    [...ALL_TERMS[termIdx].h].filter(ch => HANZI_STROKE_DATA[ch]).forEach(ch => seq.push({termIdx, ch}));
+  });
+  return seq;
 }
 
 function startWriteRound(){
@@ -899,56 +914,38 @@ function startWriteRound(){
     : getPoolIndices(currentLevel).filter(i => hasWritableChar(ALL_TERMS[i].h));
   const size = Math.min(WRITE_ROUND_SIZE, pool.length);
   writeQueue = shuffle([...pool]).slice(0, size);
-  writeQIndex = 0;
+  writeSequence = buildWriteSequence(writeQueue);
+  writeSeqPos = 0;
   writeTotalMistakes = 0;
+  writeWordMistakeCounts = {};
+  writeFinalizedWords = new Set();
   document.getElementById('writeMistakes').textContent = '0';
-  if(writeQueue.length === 0){
+  if(writeSequence.length === 0){
     setWriteUiState('empty');
     return;
   }
-  showWriteWord();
-}
-
-function showWriteWord(){
   setWriteUiState('active');
-  const term = ALL_TERMS[writeQueue[writeQIndex]];
-  writeChars = [...term.h].filter(ch => HANZI_STROKE_DATA[ch]);
-  writeCharIndex = 0;
-  writeWordMistakes = 0;
-  document.getElementById('writePy').innerHTML = term.p + tradBadge(term.t);
-  document.getElementById('writeEn').textContent = term.e;
-  document.getElementById('writeWordProgress').textContent = `Palabra ${writeQIndex+1} de ${writeQueue.length}`;
-  document.getElementById('writeSpeak').setAttribute('data-current', term.h);
-  const iconSrc = getIconB64(term.sectionKey, term.h);
-  document.getElementById('writeIconWrap').innerHTML = iconSrc
-    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
-    : '';
-  showWriteChar();
+  showWriteAtPosition();
 }
 
-function quizCurrentChar(){
-  writeWriter.quiz({
-    showHintAfterMisses: 3,
-    onMistake(){
-      writeWordMistakes++;
-      writeTotalMistakes++;
-      document.getElementById('writeMistakes').textContent = writeTotalMistakes;
-    },
-    onComplete(){
-      writeCharIndex++;
-      if(writeCharIndex < writeChars.length){
-        setTimeout(showWriteChar, 500);
-      }else{
-        onWriteWordDone();
-      }
-    },
-  });
+function finalizeWord(termIdx){
+  if(writeFinalizedWords.has(termIdx)) return;
+  writeFinalizedWords.add(termIdx);
+  const term = ALL_TERMS[termIdx];
+  if(!writeWordMistakeCounts[termIdx]) removeMissed(term);
+  else addMissed(term);
 }
 
-function renderWriteCharDetail(ch){
+function renderWriteCharDetail(termIdx, ch){
+  const wordChars = [...ALL_TERMS[termIdx].h].filter(c => HANZI_STROKE_DATA[c]);
+  const posInWord = wordChars.indexOf(ch);
+  const progressLabel = wordChars.length > 1
+    ? `Caracter ${posInWord + 1} de ${wordChars.length}`
+    : 'Caracter';
   const info = CHAR_DICT[ch];
   const radicals = CHAR_RADICALS[ch] || [];
-  let html = info ? `<span class="write-char-py">${info[0]}</span> — <span class="write-char-en">${info[1]}</span>` : '';
+  let html = `<div class="write-char-progress">${progressLabel}: <b>${ch}</b></div>`;
+  if(info) html += `<div class="write-char-py">${info[0]}</div><div class="write-char-en">${info[1]}</div>`;
   if(radicals.length){
     const chips = radicals.map(r => `<span class="char-chip${r.radical ? ' radical-chip' : ''}"><b>${r.c}</b>${
       r.p ? ` <i>${r.p}</i>` : ''
@@ -958,31 +955,53 @@ function renderWriteCharDetail(ch){
   document.getElementById('writeCharDetail').innerHTML = html;
 }
 
-function showWriteChar(){
-  const ch = writeChars[writeCharIndex];
-  document.getElementById('writeCharProgress').textContent = writeChars.length > 1
-    ? `Caracter ${writeCharIndex+1} de ${writeChars.length}: ${ch}`
-    : `Caracter: ${ch}`;
-  renderWriteCharDetail(ch);
+function quizCurrentChar(){
+  const { termIdx } = writeSequence[writeSeqPos];
+  writeWriter.quiz({
+    showHintAfterMisses: 3,
+    onMistake(){
+      writeWordMistakeCounts[termIdx] = (writeWordMistakeCounts[termIdx] || 0) + 1;
+      writeTotalMistakes++;
+      document.getElementById('writeMistakes').textContent = writeTotalMistakes;
+    },
+    // no onComplete auto-advance: the user moves on with "Adelante" whenever ready
+  });
+}
+
+function showWriteAtPosition(){
+  const { termIdx, ch } = writeSequence[writeSeqPos];
+  const term = ALL_TERMS[termIdx];
+  document.getElementById('writePy').innerHTML = term.p + tradBadge(term.t);
+  document.getElementById('writeEn').textContent = term.e;
+  document.getElementById('writeWordProgress').textContent = `Palabra ${writeQueue.indexOf(termIdx) + 1} de ${writeQueue.length}`;
+  document.getElementById('writeSpeak').setAttribute('data-current', term.h);
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('writeIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  renderWriteCharDetail(termIdx, ch);
   createWriteWriter(ch);
   quizCurrentChar();
+  document.getElementById('writeBackBtn').disabled = writeSeqPos === 0;
 }
 
-function onWriteWordDone(){
-  const term = ALL_TERMS[writeQueue[writeQIndex]];
-  if(writeWordMistakes === 0) removeMissed(term);
-  else addMissed(term);
-  document.getElementById('writeCharProgress').textContent = '¡Palabra completa! ✅';
-  document.getElementById('writeNextBtn').style.display = 'inline-block';
-}
-
-document.getElementById('writeNextBtn').addEventListener('click', ()=>{
-  writeQIndex++;
-  if(writeQIndex >= writeQueue.length){
+document.getElementById('writeForwardBtn').addEventListener('click', ()=>{
+  const { termIdx: oldTermIdx } = writeSequence[writeSeqPos];
+  if(writeSeqPos >= writeSequence.length - 1){
+    finalizeWord(oldTermIdx);
     showWriteSummary();
-  }else{
-    showWriteWord();
+    return;
   }
+  writeSeqPos++;
+  const { termIdx: newTermIdx } = writeSequence[writeSeqPos];
+  if(newTermIdx !== oldTermIdx) finalizeWord(oldTermIdx);
+  showWriteAtPosition();
+});
+
+document.getElementById('writeBackBtn').addEventListener('click', ()=>{
+  if(writeSeqPos === 0) return;
+  writeSeqPos--;
+  showWriteAtPosition();
 });
 
 function showWriteSummary(){
@@ -1003,7 +1022,7 @@ document.getElementById('writeSpeak').addEventListener('click', ()=>{
 document.getElementById('writeRedoBtn').addEventListener('click', ()=>{
   if(!writeWriter) return;
   writeWriter.cancelQuiz();
-  createWriteWriter(writeChars[writeCharIndex]);
+  createWriteWriter(writeSequence[writeSeqPos].ch);
   quizCurrentChar();
 });
 
