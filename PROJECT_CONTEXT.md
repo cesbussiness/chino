@@ -22,9 +22,10 @@ agrupaciones de palabras o tonos.
   exactamente el archivo viejo). `index.html` sigue teniendo las imágenes e
   iconos embebidos como `data:` URIs directo en el HTML (por el bug de iOS
   Quick Look, ver más abajo). También vive ahi `src/hanzi-writer.min.js`
-  (libreria vendorizada) + `src/hanzi-data.js` (datos de trazos), para
-  Practicar escritura — ver "Qué hace la guía" arriba. Todo junto, el HTML
-  final pesa ~3.5 MB.
+  (libreria vendorizada) + `src/hanzi-data.js` (datos de trazos +
+  `CHAR_RADICALS`, descomposicion en radicales/componentes), para Practicar
+  escritura — ver "Qué hace la guía" arriba. Todo junto, el HTML final pesa
+  ~3.6 MB.
 - **Build script**: `node build.js` (sin dependencias, Node nativo) lee
   `src/index.html` e inyecta inline cualquier `<link rel="stylesheet">` y
   `<script src>` local que encuentre (hoy: `style.css`, `hanzi-writer.min.js`,
@@ -97,6 +98,24 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    ningun otro caracter practicable). Datos: proyecto Make Me a Hanzi via
    `hanzi-writer-data`, licencia Arphic Public License (ver `ARPHICPL.TXT`
    en ese repo) — libre para redistribuir/modificar reteniendo la licencia.
+   Junto a cada caracter se muestra su propio pinyin+significado (de
+   `CHAR_DICT`) y, cuando hay dato, su descomposicion en radical+componentes
+   (`CHAR_RADICALS` en `hanzi-data.js`, 446/456 caracteres — a pedido del
+   usuario, que mostro una app de referencia con ese formato). Se construyo
+   parseando el campo `decomposition` (IDS) + `radical` del diccionario
+   completo de Make Me a Hanzi (`dictionary.txt`, mismo proyecto/licencia);
+   el pinyin/significado de cada componente sale primero de `CHAR_DICT` (si
+   ese componente ya es una de nuestras 456 palabras, para consistencia),
+   despues de CC-CEDICT (prefiriendo la lectura comun sobre apellidos —
+   ej. 戈 → "dagger-axe" no "surname Ge" — y con fallback al glosario de
+   Make Me a Hanzi cuando CC-CEDICT solo tiene una entrada de apellido, ej.
+   娄), y por ultimo el glosario de Make Me a Hanzi para radicales puros que
+   no son palabras (纟, 亻, 氵...). El script quedo en
+   `tools/audit/build_char_radicals.py` (mismo requisito que el audit de
+   tonos: `pip install pycccedict`) — baja y cachea solo
+   `dictionary.txt` de Make Me a Hanzi (no versionado, ~2.5MB) la primera
+   vez que se corre, e imprime el `CHAR_RADICALS` actualizado por stdout
+   para pegar en `src/hanzi-data.js` si hace falta regenerarlo.
 
 Filtros globales, aplican a los 5 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown

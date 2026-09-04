@@ -889,6 +889,7 @@ function setWriteUiState(state){
   const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
   show('writeQuestion', state === 'active');
   show('writeCharProgress', state === 'active');
+  show('writeCharDetail', state === 'active');
   show('writeTarget', state === 'active');
   show('writeControls', state === 'active');
   show('writeNextBtn', false);
@@ -948,11 +949,25 @@ function quizCurrentChar(){
   });
 }
 
+function renderWriteCharDetail(ch){
+  const info = CHAR_DICT[ch];
+  const radicals = CHAR_RADICALS[ch] || [];
+  let html = info ? `<span class="write-char-py">${info[0]}</span> — <span class="write-char-en">${info[1]}</span>` : '';
+  if(radicals.length){
+    const chips = radicals.map(r => `<span class="char-chip${r.radical ? ' radical-chip' : ''}"><b>${r.c}</b>${
+      r.p ? ` <i>${r.p}</i>` : ''
+    }${r.e ? ` ${r.e}` : ''}${r.radical ? ' <span class="radical-tag">radical</span>' : ''}</span>`).join('');
+    html += `<div class="char-breakdown"><div class="cb-label">Radical / componentes:</div>${chips}</div>`;
+  }
+  document.getElementById('writeCharDetail').innerHTML = html;
+}
+
 function showWriteChar(){
   const ch = writeChars[writeCharIndex];
   document.getElementById('writeCharProgress').textContent = writeChars.length > 1
     ? `Caracter ${writeCharIndex+1} de ${writeChars.length}: ${ch}`
     : `Caracter: ${ch}`;
+  renderWriteCharDetail(ch);
   createWriteWriter(ch);
   quizCurrentChar();
 }

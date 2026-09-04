@@ -386,6 +386,38 @@
   }
   .progress-txt{font-size:.85rem;color:var(--gris);}
 
+  /* Handwriting practice: pinyin+significado+radicales del caracter actual */
+  .write-char-detail{
+    text-align:center;
+    margin:2px 0 4px;
+  }
+  .write-char-py{
+    color:var(--azul);
+    font-weight:700;
+    font-size:1.05rem;
+  }
+  .write-char-en{
+    color:var(--gris);
+    font-size:.95rem;
+  }
+  .write-char-detail .char-breakdown{
+    border-top:none;
+    margin-top:6px;
+    padding-top:0;
+  }
+  .char-chip.radical-chip{
+    background:#fff3cd;
+    border:1px solid var(--amarillo-osc);
+  }
+  .radical-tag{
+    display:inline-block;
+    font-size:.6rem;
+    font-weight:700;
+    text-transform:uppercase;
+    color:#7a5b00;
+    margin-left:3px;
+  }
+
   /* Handwriting practice: 米字格-style guide grid (cross + corner-to-corner
      diagonals), like traditional Chinese character practice paper. */
   .write-target{
