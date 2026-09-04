@@ -116,6 +116,13 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    `dictionary.txt` de Make Me a Hanzi (no versionado, ~2.5MB) la primera
    vez que se corre, e imprime el `CHAR_RADICALS` actualizado por stdout
    para pegar en `src/hanzi-data.js` si hace falta regenerarlo.
+   **Layout**: en mobile todo apilado (igual que el resto de la practica);
+   en desktop (`min-width:901px`) la info (palabra + caracter + radicales)
+   va en una columna a la izquierda del recuadro de escritura en vez de
+   arriba — a pedido del usuario, para que la vista completa entre sin
+   scroll (`.write-practice-area` con `flex-direction:row` en desktop,
+   ver bug/mejora de layout de Adivina/Tonos mas arriba, mismo criterio
+   general de "evitar scroll en las vistas de pc").
 
 Filtros globales, aplican a los 5 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown

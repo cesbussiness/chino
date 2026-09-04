@@ -887,11 +887,7 @@ function hasWritableChar(hz){
 
 function setWriteUiState(state){
   const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
-  show('writeQuestion', state === 'active');
-  show('writeCharProgress', state === 'active');
-  show('writeCharDetail', state === 'active');
-  show('writeTarget', state === 'active');
-  show('writeControls', state === 'active');
+  show('writePracticeArea', state === 'active');
   show('writeNextBtn', false);
   show('writeNoWords', state === 'empty');
   document.getElementById('writeSummary').style.display = state === 'summary' ? 'block' : 'none';

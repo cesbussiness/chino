@@ -386,6 +386,45 @@
   }
   .progress-txt{font-size:.85rem;color:var(--gris);}
 
+  /* Handwriting practice: en mobile todo apilado (igual que antes); en
+     desktop la info (palabra + caracter + radicales) va al lado del
+     recuadro de escritura, no arriba, para no obligar a hacer scroll. */
+  .write-practice-area{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+  }
+  .write-info-col{
+    width:100%;
+    text-align:center;
+  }
+  .write-target-col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  @media (min-width:901px){
+    .write-practice-area{
+      flex-direction:row;
+      align-items:flex-start;
+      justify-content:center;
+      gap:32px;
+      max-width:640px;
+      margin:0 auto;
+    }
+    .write-info-col{
+      width:280px;
+      flex-shrink:0;
+      text-align:left;
+      padding-top:8px;
+    }
+    .write-info-col .game-question{text-align:left;}
+    .write-info-col .app-icon{margin:0 0 8px !important;}
+    .write-info-col .write-char-detail{text-align:left;}
+    .write-info-col .cb-label{text-align:left;}
+  }
+
   /* Handwriting practice: pinyin+significado+radicales del caracter actual */
   .write-char-detail{
     text-align:center;
