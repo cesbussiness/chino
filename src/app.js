@@ -860,9 +860,13 @@ function hanziCharDataLoader(char, onLoad, onError){
   else onError('sin datos de trazos para ' + char);
 }
 
-function ensureWriteWriter(){
-  if(writeWriter) return writeWriter;
-  writeWriter = HanziWriter.create('writeTarget', '一', {
+function createWriteWriter(ch){
+  // Recreated from scratch for every character (instead of reusing one
+  // instance via setCharacter()) — mistake strokes drawn during a quiz
+  // weren't always cleared by setCharacter(), leaving faint gray leftover
+  // lines from previous characters/words behind the new outline.
+  document.getElementById('writeTarget').innerHTML = '';
+  writeWriter = HanziWriter.create('writeTarget', ch, {
     width: 260,
     height: 260,
     padding: 14,
@@ -949,7 +953,8 @@ function showWriteChar(){
   document.getElementById('writeCharProgress').textContent = writeChars.length > 1
     ? `Caracter ${writeCharIndex+1} de ${writeChars.length}: ${ch}`
     : `Caracter: ${ch}`;
-  ensureWriteWriter().setCharacter(ch).then(quizCurrentChar);
+  createWriteWriter(ch);
+  quizCurrentChar();
 }
 
 function onWriteWordDone(){
@@ -987,6 +992,7 @@ document.getElementById('writeSpeak').addEventListener('click', ()=>{
 document.getElementById('writeRedoBtn').addEventListener('click', ()=>{
   if(!writeWriter) return;
   writeWriter.cancelQuiz();
+  createWriteWriter(writeChars[writeCharIndex]);
   quizCurrentChar();
 });
 
