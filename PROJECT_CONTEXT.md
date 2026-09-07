@@ -79,7 +79,7 @@ abajo antes de tocar esos archivos.
 Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de iconos) ·
 外卖 Delivery · 京东 JD/HK超市 · 🔗 En común · Glosario completo · Práctica.
 
-**Práctica** tiene 5 modos, todos comparten nivel/sección + filtro de escritura:
+**Práctica** tiene 6 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
    + desglose de caracteres. Recall activo tipo Anki: 🔴 **Repasar** manda la
    tarjeta al final de la cola de la ronda actual (y a la cola global de
@@ -89,10 +89,17 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    pasivo: a pedido del usuario, la logica es autoevaluarse hasta dominar
    todas las tarjetas del filtro activo, no simplemente hojearlas.
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
-3. **🔗 Juego: Emparejar** — memorama hanzi↔inglés.
-4. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
+3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
+   solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin
+   para que ambas queden claras en la barra de modos).
+4. **🔗 Emparejar: Pinyin** — mismo memorama, pero hanzi↔pinyin (a pedido
+   del usuario) en vez de hanzi↔inglés — util para practicar lectura de
+   pinyin con tonos en vez de vocabulario. Comparte motor con el anterior
+   via `createMatchGame(opts)` (parametrizado por que campo del termino usa
+   la ficha "otra": `t.e` o `t.p`) en vez de duplicar la logica del juego.
+5. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
    los tonos (para practicar oído tonal).
-5. **✍️ Practicar escritura** — orden de trazos real por carácter (via
+6. **✍️ Practicar escritura** — orden de trazos real por carácter (via
    [Hanzi Writer](https://chanind.github.io/hanzi-writer), vendorizado offline
    en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Arma una ronda de 12
    palabras del filtro activo y las aplana en una secuencia unica de
@@ -152,7 +159,7 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    significado/radicales del panel izquierdo se agrandaron notablemente
    (antes eran chicos y dificiles de leer).
 
-Filtros globales, aplican a los 5 modos por igual: nivel (① comunes / ②
+Filtros globales, aplican a los 6 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown
 con las 23 secciones reales — si se elige una, anula el nivel; elegir un
 nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36

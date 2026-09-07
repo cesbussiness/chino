@@ -951,6 +951,10 @@
     font-size:clamp(1.2rem, 5vw, 1.5rem);
     font-weight:700;
   }
+  .match-tile-py{
+    color:var(--azul);
+    font-weight:600;
+  }
   .match-tile:hover:not(:disabled){
     border-color:var(--amarillo-osc);
   }

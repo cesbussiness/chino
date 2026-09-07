@@ -560,7 +560,8 @@ let currentSection = 'ALL';
 function refreshCurrentMode(){
   if(currentMode === 'cards'){ resetOrder(); nextCard(); }
   else if(currentMode === 'game'){ startGameRound(); }
-  else if(currentMode === 'match'){ startMatchRound(); }
+  else if(currentMode === 'match'){ matchGame.start(); }
+  else if(currentMode === 'matchpy'){ matchPyGame.start(); }
   else if(currentMode === 'tones'){ startTonesRound(); }
   else if(currentMode === 'write'){ startWriteRound(); }
 }
@@ -603,6 +604,7 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.getElementById('cardsMode').style.display = currentMode === 'cards' ? '' : 'none';
   document.getElementById('gameMode').style.display = currentMode === 'game' ? '' : 'none';
   document.getElementById('matchMode').style.display = currentMode === 'match' ? '' : 'none';
+  document.getElementById('matchpyMode').style.display = currentMode === 'matchpy' ? '' : 'none';
   document.getElementById('tonesMode').style.display = currentMode === 'tones' ? '' : 'none';
   document.getElementById('writeMode').style.display = currentMode === 'write' ? '' : 'none';
   // free up vertical space in game modes: only show the long explainer for cards mode
@@ -623,119 +625,134 @@ document.getElementById('sectionSelect').addEventListener('change', (e)=>{
 });
 
 // ---------------------------------------------------------------
-// Match the words game
+// Match the words games: hanzi <-> english meaning, and hanzi <-> pinyin.
+// Same engine parametrized by which field of the term the "other" tile
+// shows, so both variants share one implementation.
 // ---------------------------------------------------------------
 const MATCH_ROUND_SIZE = 6;
-let matchPairs = [];
-let matchTiles = [];
-let matchSelectedId = null;
-let matchCorrectCount = 0;
-let matchWrongCount = 0;
 
-function startMatchRound(){
-  const pool = getPoolIndices(currentLevel);
-  if(pool.length === 0){
-    document.getElementById('matchGrid').innerHTML = '<p style="text-align:center;color:#999;">No hay suficientes palabras en este filtro.</p>';
-    document.getElementById('matchStats').textContent = '';
-    return;
-  }
-  const size = Math.min(MATCH_ROUND_SIZE, pool.length);
-  const chosen = shuffle([...pool]).slice(0, size);
-  matchPairs = chosen.map(i => ALL_TERMS[i]);
-  matchTiles = [];
-  matchPairs.forEach((t, pairId)=>{
-    matchTiles.push({id:'hz'+pairId, type:'hz', text:t.h, pairId, matched:false, term:t});
-    matchTiles.push({id:'en'+pairId, type:'en', text:t.e, pairId, matched:false, term:t});
-  });
-  matchTiles = shuffle(matchTiles);
-  matchSelectedId = null;
-  matchCorrectCount = 0;
-  matchWrongCount = 0;
-  document.getElementById('matchSummary').style.display = 'none';
-  document.getElementById('matchGrid').style.display = 'grid';
-  renderMatchGrid();
-  updateMatchStats();
-}
+function createMatchGame(opts){
+  // opts: gridId, statsId, summaryId, otherType ('en'|'py'), otherClass,
+  // tileTextFn(term) -> string shown on the "other" tile.
+  const state = { pairs: [], tiles: [], selectedId: null, correctCount: 0, wrongCount: 0 };
 
-function renderMatchGrid(){
-  const grid = document.getElementById('matchGrid');
-  grid.innerHTML = matchTiles.map(t => `
-    <button class="match-tile ${t.type==='hz' ? 'match-tile-hz' : 'match-tile-en'}" data-id="${t.id}">${t.text}</button>
-  `).join('');
-}
-
-function updateMatchStats(){
-  document.getElementById('matchStats').textContent =
-    `Aciertos: ${matchCorrectCount}/${matchPairs.length} · Errores: ${matchWrongCount}`;
-}
-
-document.getElementById('matchGrid').addEventListener('click', (e)=>{
-  const btn = e.target.closest('.match-tile');
-  if(!btn || btn.disabled) return;
-  const id = btn.getAttribute('data-id');
-  const tile = matchTiles.find(t=>t.id===id);
-  if(tile.matched) return;
-
-  if(!matchSelectedId){
-    matchSelectedId = id;
-    btn.classList.add('selected');
-    return;
-  }
-  if(matchSelectedId === id){
-    btn.classList.remove('selected');
-    matchSelectedId = null;
-    return;
-  }
-  const selTile = matchTiles.find(t=>t.id===matchSelectedId);
-  const selBtn = document.querySelector(`.match-tile[data-id="${matchSelectedId}"]`);
-
-  if(selTile.type === tile.type){
-    selBtn.classList.remove('selected');
-    matchSelectedId = id;
-    btn.classList.add('selected');
-    return;
-  }
-
-  if(selTile.pairId === tile.pairId){
-    selTile.matched = true;
-    tile.matched = true;
-    matchCorrectCount++;
-    [selBtn, btn].forEach(b=>{
-      b.classList.remove('selected');
-      b.classList.add('correct');
-      b.disabled = true;
-    });
-    removeMissed(tile.term);
-    speak(tile.type === 'hz' ? tile.text : selTile.text);
-    matchSelectedId = null;
-    updateMatchStats();
-    if(matchCorrectCount === matchPairs.length){
-      setTimeout(showMatchSummary, 500);
+  function start(){
+    const pool = getPoolIndices(currentLevel);
+    const grid = document.getElementById(opts.gridId);
+    const stats = document.getElementById(opts.statsId);
+    if(pool.length === 0){
+      grid.innerHTML = '<p style="text-align:center;color:#999;">No hay suficientes palabras en este filtro.</p>';
+      stats.textContent = '';
+      return;
     }
-  }else{
-    matchWrongCount++;
-    addMissed(selTile.term);
-    addMissed(tile.term);
-    [selBtn, btn].forEach(b=> b.classList.add('wrong-flash'));
-    matchSelectedId = null;
-    updateMatchStats();
-    setTimeout(()=>{
-      [selBtn, btn].forEach(b=>{ b.classList.remove('selected','wrong-flash'); });
-    }, 650);
+    const size = Math.min(MATCH_ROUND_SIZE, pool.length);
+    const chosen = shuffle([...pool]).slice(0, size);
+    state.pairs = chosen.map(i => ALL_TERMS[i]);
+    state.tiles = [];
+    state.pairs.forEach((t, pairId)=>{
+      state.tiles.push({id:'hz'+pairId, type:'hz', text:t.h, pairId, matched:false, term:t});
+      state.tiles.push({id:opts.otherType+pairId, type:opts.otherType, text:opts.tileTextFn(t), pairId, matched:false, term:t});
+    });
+    state.tiles = shuffle(state.tiles);
+    state.selectedId = null;
+    state.correctCount = 0;
+    state.wrongCount = 0;
+    document.getElementById(opts.summaryId).style.display = 'none';
+    grid.style.display = 'grid';
+    render();
+    updateStats();
   }
-});
 
-function showMatchSummary(){
-  document.getElementById('matchGrid').style.display = 'none';
-  const summary = document.getElementById('matchSummary');
-  summary.style.display = 'block';
-  summary.innerHTML = `
-    <div class="big-score">${matchPairs.length} / ${matchPairs.length}</div>
-    <p>Ronda completa con ${matchWrongCount} error(es)</p>
-    <button id="matchReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
-  `;
-  document.getElementById('matchReplayBtn').addEventListener('click', startMatchRound);
+  function render(){
+    document.getElementById(opts.gridId).innerHTML = state.tiles.map(t => `
+      <button class="match-tile ${t.type==='hz' ? 'match-tile-hz' : opts.otherClass}" data-id="${t.id}">${t.text}</button>
+    `).join('');
+  }
+
+  function updateStats(){
+    document.getElementById(opts.statsId).textContent =
+      `Aciertos: ${state.correctCount}/${state.pairs.length} · Errores: ${state.wrongCount}`;
+  }
+
+  document.getElementById(opts.gridId).addEventListener('click', (e)=>{
+    const btn = e.target.closest('.match-tile');
+    if(!btn || btn.disabled) return;
+    const id = btn.getAttribute('data-id');
+    const tile = state.tiles.find(t=>t.id===id);
+    if(tile.matched) return;
+
+    if(!state.selectedId){
+      state.selectedId = id;
+      btn.classList.add('selected');
+      return;
+    }
+    if(state.selectedId === id){
+      btn.classList.remove('selected');
+      state.selectedId = null;
+      return;
+    }
+    const selTile = state.tiles.find(t=>t.id===state.selectedId);
+    const selBtn = document.querySelector(`#${opts.gridId} .match-tile[data-id="${state.selectedId}"]`);
+
+    if(selTile.type === tile.type){
+      selBtn.classList.remove('selected');
+      state.selectedId = id;
+      btn.classList.add('selected');
+      return;
+    }
+
+    if(selTile.pairId === tile.pairId){
+      selTile.matched = true;
+      tile.matched = true;
+      state.correctCount++;
+      [selBtn, btn].forEach(b=>{
+        b.classList.remove('selected');
+        b.classList.add('correct');
+        b.disabled = true;
+      });
+      removeMissed(tile.term);
+      speak(tile.term.h);
+      state.selectedId = null;
+      updateStats();
+      if(state.correctCount === state.pairs.length){
+        setTimeout(showSummary, 500);
+      }
+    }else{
+      state.wrongCount++;
+      addMissed(selTile.term);
+      addMissed(tile.term);
+      [selBtn, btn].forEach(b=> b.classList.add('wrong-flash'));
+      state.selectedId = null;
+      updateStats();
+      setTimeout(()=>{
+        [selBtn, btn].forEach(b=>{ b.classList.remove('selected','wrong-flash'); });
+      }, 650);
+    }
+  });
+
+  function showSummary(){
+    document.getElementById(opts.gridId).style.display = 'none';
+    const summary = document.getElementById(opts.summaryId);
+    summary.style.display = 'block';
+    summary.innerHTML = `
+      <div class="big-score">${state.pairs.length} / ${state.pairs.length}</div>
+      <p>Ronda completa con ${state.wrongCount} error(es)</p>
+      <button class="match-replay-btn speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
+    `;
+    summary.querySelector('.match-replay-btn').addEventListener('click', start);
+  }
+
+  return { start };
 }
+
+const matchGame = createMatchGame({
+  gridId: 'matchGrid', statsId: 'matchStats', summaryId: 'matchSummary',
+  otherType: 'en', otherClass: 'match-tile-en', tileTextFn: t => t.e,
+});
+const matchPyGame = createMatchGame({
+  gridId: 'matchpyGrid', statsId: 'matchpyStats', summaryId: 'matchpySummary',
+  otherType: 'py', otherClass: 'match-tile-py', tileTextFn: t => t.p,
+});
 
 // ---------------------------------------------------------------
 // Tone recognition game

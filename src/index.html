@@ -397,7 +397,8 @@
       <div class="mode-switch" id="modeSwitch">
         <button data-mode="cards" class="active">📇 Tarjetas de repaso</button>
         <button data-mode="game">🎮 Juego: Adivina</button>
-        <button data-mode="match">🔗 Juego: Emparejar</button>
+        <button data-mode="match">🔗 Emparejar: Significado</button>
+        <button data-mode="matchpy">🔗 Emparejar: Pinyin</button>
         <button data-mode="tones">🎵 Juego: Tonos</button>
         <button data-mode="write">✍️ Practicar escritura</button>
       </div>
@@ -449,11 +450,18 @@
       <div class="game-summary" id="gameSummary" style="display:none;"></div>
     </div>
 
-    <!-- Match the words game -->
+    <!-- Match the words game: hanzi <-> english meaning -->
     <div class="match-wrap" id="matchMode" style="display:none;">
       <div class="match-stats" id="matchStats">Aciertos: 0/6 · Errores: 0</div>
       <div class="match-grid" id="matchGrid"></div>
       <div class="match-summary" id="matchSummary" style="display:none;"></div>
+    </div>
+
+    <!-- Match the words game: hanzi <-> pinyin -->
+    <div class="match-wrap" id="matchpyMode" style="display:none;">
+      <div class="match-stats" id="matchpyStats">Aciertos: 0/6 · Errores: 0</div>
+      <div class="match-grid" id="matchpyGrid"></div>
+      <div class="match-summary" id="matchpySummary" style="display:none;"></div>
     </div>
 
     <!-- Tone recognition game -->
