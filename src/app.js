@@ -326,6 +326,31 @@ function shuffle(arr){
   return arr;
 }
 
+// Shared multiple-choice builders, used by Juego: Adivina / Juego: Tonos
+// and by the Examen mode, so the distractor logic lives in one place.
+function buildMeaningOptions(term, pool){
+  const candidatePool = pool.length >= 4 ? pool : ALL_TERMS.map((_,i)=>i);
+  const usedEn = new Set([term.e]);
+  const distractors = [];
+  for(const i of shuffle([...candidatePool])){
+    if(distractors.length >= 3) break;
+    const cand = ALL_TERMS[i];
+    if(cand.e === term.e || usedEn.has(cand.e)) continue;
+    usedEn.add(cand.e);
+    distractors.push(cand);
+  }
+  return shuffle([{e:term.e, correct:true}, ...distractors.map(d=>({e:d.e, correct:false}))]);
+}
+
+function buildToneOptions(term){
+  const data = TONE_GAME_DATA[term.h];
+  if(!data) return null;
+  return shuffle([
+    {py:data.correct, correct:true},
+    ...data.distractors.map(d=>({py:d, correct:false})),
+  ]);
+}
+
 // Si hay una seccion especifica elegida (currentSection !== 'ALL'), esa
 // seccion anula el nivel para las 4 actividades de practica. Si no, el nivel
 // decide el grupo de secciones como antes.
@@ -470,18 +495,7 @@ function showGameQuestion(){
     : '';
 
   // build 4 options: 1 correct + 3 distractors (unique English text) from same pool if possible
-  const pool = gamePool.length >= 4 ? gamePool : ALL_TERMS.map((_,i)=>i);
-  const usedEn = new Set([term.e]);
-  const distractors = [];
-  const shuffledPool = shuffle([...pool]);
-  for(const i of shuffledPool){
-    if(distractors.length >= 3) break;
-    const cand = ALL_TERMS[i];
-    if(cand.e === term.e || usedEn.has(cand.e)) continue;
-    usedEn.add(cand.e);
-    distractors.push(cand);
-  }
-  const options = shuffle([{e:term.e, correct:true}, ...distractors.map(d=>({e:d.e, correct:false}))]);
+  const options = buildMeaningOptions(term, gamePool);
 
   const optWrap = document.getElementById('gameOptions');
   optWrap.innerHTML = options.map((o,i)=>`
@@ -564,6 +578,7 @@ function refreshCurrentMode(){
   else if(currentMode === 'matchpy'){ matchPyGame.start(); }
   else if(currentMode === 'tones'){ startTonesRound(); }
   else if(currentMode === 'write'){ startWriteRound(); }
+  else if(currentMode === 'exam'){ startExam(); }
 }
 
 document.getElementById('simplifiedOnlyToggle').addEventListener('change', (e)=>{
@@ -607,6 +622,7 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.getElementById('matchpyMode').style.display = currentMode === 'matchpy' ? '' : 'none';
   document.getElementById('tonesMode').style.display = currentMode === 'tones' ? '' : 'none';
   document.getElementById('writeMode').style.display = currentMode === 'write' ? '' : 'none';
+  document.getElementById('examMode').style.display = currentMode === 'exam' ? '' : 'none';
   // free up vertical space in game modes: only show the long explainer for cards mode
   document.getElementById('practicaIntroBox').style.display = currentMode === 'cards' ? '' : 'none';
   refreshCurrentMode();
@@ -880,7 +896,6 @@ function showTonesQuestion(){
   document.getElementById('tonesFeedback').className = 'game-feedback';
 
   const term = ALL_TERMS[tonesQueue[tonesQIndex]];
-  const data = TONE_GAME_DATA[term.h];
   document.getElementById('tonesHz').innerHTML = term.h + tradBadge(term.t);
   document.getElementById('tonesHz').setAttribute('data-hz', term.h);
   document.getElementById('tonesEn').textContent = term.e;
@@ -890,10 +905,7 @@ function showTonesQuestion(){
     ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
     : '';
 
-  const options = shuffle([
-    {py: data.correct, correct:true},
-    ...data.distractors.map(d=>({py:d, correct:false}))
-  ]);
+  const options = buildToneOptions(term);
   document.getElementById('tonesOptions').innerHTML = options.map(o=>`
     <button class="option-btn" data-correct="${o.correct}">${o.py}</button>
   `).join('');
@@ -1149,6 +1161,295 @@ document.getElementById('writeHintBtn').addEventListener('click', ()=>{
   writeWriter.cancelQuiz();
   writeWriter.animateCharacter({ onComplete: quizCurrentChar });
 });
+
+// ---------------------------------------------------------------
+// Examen: a per-section knowledge check that chains flashcard
+// self-check + multiple-choice meaning + a matching checkpoint +
+// multiple-choice tone (when tone data exists) into one sequence over
+// the whole filtered pool. Forward-only: once an item is answered
+// there is no way back to change it, only "Siguiente"/self-grading
+// moves ahead. Ends with a score breakdown per question type.
+// ---------------------------------------------------------------
+const EXAM_MAX_POOL = 24; // caps how long an exam over "todo mezclado" can get
+const EXAM_MATCH_CHUNK = 6;
+let examItems = [];
+let examPos = 0;
+let examAnswered = false;
+let examScore = { flash:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
+
+const EXAM_PHASE_LABELS = {
+  flash: '📇 Autoevaluacion',
+  mc: '🎯 Selección múltiple: significado',
+  match: '🔗 Emparejar',
+  tone: '🎵 Selección múltiple: tono',
+};
+
+function buildExamItems(pool){
+  const items = [];
+  shuffle([...pool]).forEach(idx => items.push({type:'flash', termIdx: idx}));
+  shuffle([...pool]).forEach(idx => items.push({type:'mc', termIdx: idx}));
+  if(pool.length >= 2){
+    const matchPool = shuffle([...pool]);
+    for(let i=0; i<matchPool.length; i+=EXAM_MATCH_CHUNK){
+      const chunk = matchPool.slice(i, i+EXAM_MATCH_CHUNK);
+      if(chunk.length >= 2) items.push({type:'match', termIdxs: chunk});
+    }
+  }
+  const toneCandidates = pool.filter(i => TONE_GAME_DATA[ALL_TERMS[i].h]);
+  shuffle([...toneCandidates]).forEach(idx => items.push({type:'tone', termIdx: idx}));
+  return items;
+}
+
+function setExamItemVisible(type){
+  document.getElementById('examFlashItem').style.display = type === 'flash' ? '' : 'none';
+  document.getElementById('examMcItem').style.display = (type === 'mc' || type === 'tone') ? '' : 'none';
+  document.getElementById('examMatchItem').style.display = type === 'match' ? '' : 'none';
+}
+
+function startExam(){
+  let pool = getPoolIndices(currentLevel);
+  if(pool.length > EXAM_MAX_POOL) pool = shuffle([...pool]).slice(0, EXAM_MAX_POOL);
+  examScore = { flash:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
+  document.getElementById('examSummary').style.display = 'none';
+  if(pool.length === 0){
+    examItems = [];
+    setExamItemVisible(null);
+    document.getElementById('examEmpty').style.display = 'block';
+    document.getElementById('examProgress').textContent = '';
+    document.getElementById('examPhaseLabel').textContent = '';
+    return;
+  }
+  document.getElementById('examEmpty').style.display = 'none';
+  examItems = buildExamItems(pool);
+  examPos = 0;
+  showExamItem();
+}
+
+function showExamItem(){
+  const item = examItems[examPos];
+  document.getElementById('examProgress').textContent = `Pregunta ${examPos+1} de ${examItems.length}`;
+  document.getElementById('examPhaseLabel').textContent = EXAM_PHASE_LABELS[item.type];
+  setExamItemVisible(item.type);
+  if(item.type === 'flash') showExamFlash(item);
+  else if(item.type === 'mc') showExamMc(item);
+  else if(item.type === 'tone') showExamTone(item);
+  else if(item.type === 'match') showExamMatch(item);
+}
+
+function advanceExam(){
+  examPos++;
+  if(examPos >= examItems.length) showExamSummary();
+  else showExamItem();
+}
+
+// --- flashcard self-check ---
+function showExamFlash(item){
+  const term = ALL_TERMS[item.termIdx];
+  document.getElementById('examFlashcard').classList.remove('flipped');
+  document.getElementById('examFcFront').innerHTML = term.h + tradBadge(term.t);
+  document.getElementById('examFcBack').innerHTML = `<div class="py">${term.p}</div><div class="en">${term.e}</div>`;
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('examFcIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  speak(term.h);
+}
+
+document.getElementById('examFlashcard').addEventListener('click', ()=>{
+  document.getElementById('examFlashcard').classList.toggle('flipped');
+});
+
+document.getElementById('examFcYesBtn').addEventListener('click', ()=>{
+  if(examItems[examPos].type !== 'flash') return;
+  examScore.flash.total++;
+  examScore.flash.correct++;
+  advanceExam();
+});
+
+document.getElementById('examFcNoBtn').addEventListener('click', ()=>{
+  if(examItems[examPos].type !== 'flash') return;
+  examScore.flash.total++;
+  advanceExam();
+});
+
+// --- multiple choice: significado y tono comparten la misma marcacion ---
+function showExamMc(item){
+  examAnswered = false;
+  const term = ALL_TERMS[item.termIdx];
+  document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);
+  document.getElementById('examMcHz').setAttribute('data-hz', term.h);
+  document.getElementById('examMcSub').textContent = term.p;
+  document.getElementById('examMcInstruction').textContent = '¿Que significa esta palabra?';
+  document.getElementById('examMcFeedback').textContent = '';
+  document.getElementById('examMcFeedback').className = 'game-feedback';
+  document.getElementById('examMcNextBtn').style.display = 'none';
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('examMcIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  const mcPool = examItems.filter(i => i.type === 'mc').map(i => i.termIdx);
+  const options = buildMeaningOptions(term, mcPool);
+  document.getElementById('examMcOptions').innerHTML = options.map(o=>`
+    <button class="option-btn" data-correct="${o.correct}">${o.e}</button>
+  `).join('');
+}
+
+function showExamTone(item){
+  examAnswered = false;
+  const term = ALL_TERMS[item.termIdx];
+  document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);
+  document.getElementById('examMcHz').setAttribute('data-hz', term.h);
+  document.getElementById('examMcSub').textContent = term.e;
+  document.getElementById('examMcInstruction').textContent = '¿Cual es el pinyin (con tonos) correcto?';
+  document.getElementById('examMcFeedback').textContent = '';
+  document.getElementById('examMcFeedback').className = 'game-feedback';
+  document.getElementById('examMcNextBtn').style.display = 'none';
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('examMcIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  const options = buildToneOptions(term);
+  document.getElementById('examMcOptions').innerHTML = options.map(o=>`
+    <button class="option-btn" data-correct="${o.correct}">${o.py}</button>
+  `).join('');
+}
+
+document.getElementById('examMcOptions').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.option-btn');
+  if(!btn || examAnswered) return;
+  examAnswered = true;
+  const item = examItems[examPos];
+  const bucket = item.type === 'tone' ? examScore.tone : examScore.mc;
+  bucket.total++;
+  const isCorrect = btn.getAttribute('data-correct') === 'true';
+  if(isCorrect) bucket.correct++;
+  document.querySelectorAll('#examMcOptions .option-btn').forEach(b=>{
+    b.disabled = true;
+    if(b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+  });
+  if(!isCorrect) btn.classList.add('incorrect');
+  const feedback = document.getElementById('examMcFeedback');
+  feedback.textContent = isCorrect ? '¡Correcto! 🎉' : 'Incorrecto — mira la opcion correcta en verde';
+  feedback.className = 'game-feedback ' + (isCorrect ? 'correct-txt' : 'incorrect-txt');
+  document.getElementById('examMcNextBtn').style.display = 'inline-block';
+  speak(document.getElementById('examMcHz').getAttribute('data-hz'));
+});
+
+document.getElementById('examMcSpeak').addEventListener('click', ()=>{
+  speak(document.getElementById('examMcHz').getAttribute('data-hz'));
+});
+
+document.getElementById('examMcNextBtn').addEventListener('click', advanceExam);
+
+// --- matching checkpoint (self-contained mini version of createMatchGame,
+// scored into examScore.match instead of the shared missed-words queue) ---
+let examMatchState = null;
+
+function showExamMatch(item){
+  const pairs = item.termIdxs.map(i => ALL_TERMS[i]);
+  const tiles = [];
+  pairs.forEach((t, pairId)=>{
+    tiles.push({id:'exhz'+pairId, type:'hz', text:t.h, pairId, matched:false});
+    tiles.push({id:'exen'+pairId, type:'en', text:t.e, pairId, matched:false});
+  });
+  examMatchState = { tiles: shuffle(tiles), selectedId: null, correctCount:0, wrongCount:0, total: pairs.length };
+  renderExamMatch();
+  updateExamMatchStats();
+}
+
+function renderExamMatch(){
+  document.getElementById('examMatchGrid').innerHTML = examMatchState.tiles.map(t => `
+    <button class="match-tile ${t.type==='hz' ? 'match-tile-hz' : 'match-tile-en'}" data-id="${t.id}">${t.text}</button>
+  `).join('');
+}
+
+function updateExamMatchStats(){
+  document.getElementById('examMatchStats').textContent =
+    `Aciertos: ${examMatchState.correctCount}/${examMatchState.total} · Errores: ${examMatchState.wrongCount}`;
+}
+
+document.getElementById('examMatchGrid').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.match-tile');
+  if(!btn || btn.disabled || !examMatchState) return;
+  const id = btn.getAttribute('data-id');
+  const tile = examMatchState.tiles.find(t=>t.id===id);
+  if(tile.matched) return;
+
+  if(!examMatchState.selectedId){
+    examMatchState.selectedId = id;
+    btn.classList.add('selected');
+    return;
+  }
+  if(examMatchState.selectedId === id){
+    btn.classList.remove('selected');
+    examMatchState.selectedId = null;
+    return;
+  }
+  const selTile = examMatchState.tiles.find(t=>t.id===examMatchState.selectedId);
+  const selBtn = document.querySelector(`#examMatchGrid .match-tile[data-id="${examMatchState.selectedId}"]`);
+
+  if(selTile.type === tile.type){
+    selBtn.classList.remove('selected');
+    examMatchState.selectedId = id;
+    btn.classList.add('selected');
+    return;
+  }
+
+  if(selTile.pairId === tile.pairId){
+    selTile.matched = true;
+    tile.matched = true;
+    examMatchState.correctCount++;
+    [selBtn, btn].forEach(b=>{
+      b.classList.remove('selected');
+      b.classList.add('correct');
+      b.disabled = true;
+    });
+    speak(selTile.type === 'hz' ? selTile.text : tile.text);
+    examMatchState.selectedId = null;
+    updateExamMatchStats();
+    if(examMatchState.correctCount === examMatchState.total){
+      examScore.match.correct += examMatchState.correctCount;
+      examScore.match.total += examMatchState.correctCount + examMatchState.wrongCount;
+      setTimeout(advanceExam, 500);
+    }
+  }else{
+    examMatchState.wrongCount++;
+    [selBtn, btn].forEach(b=> b.classList.add('wrong-flash'));
+    examMatchState.selectedId = null;
+    updateExamMatchStats();
+    setTimeout(()=>{
+      [selBtn, btn].forEach(b=>{ b.classList.remove('selected','wrong-flash'); });
+    }, 650);
+  }
+});
+
+// --- final summary, scored per question type ---
+function showExamSummary(){
+  setExamItemVisible(null);
+  document.getElementById('examProgress').textContent = '';
+  document.getElementById('examPhaseLabel').textContent = '';
+  const parts = [
+    ['📇 Tarjetas', examScore.flash],
+    ['🎯 Significado', examScore.mc],
+    ['🔗 Emparejar', examScore.match],
+    ['🎵 Tonos', examScore.tone],
+  ].filter(([,s]) => s.total > 0);
+  const totalCorrect = parts.reduce((a,[,s])=>a+s.correct, 0);
+  const totalCount = parts.reduce((a,[,s])=>a+s.total, 0);
+  const pct = totalCount ? Math.round((totalCorrect/totalCount)*100) : 0;
+  const rows = parts.map(([label,s])=>`
+    <div class="exam-score-row"><span>${label}</span><span>${s.correct} / ${s.total}</span></div>
+  `).join('');
+  const summary = document.getElementById('examSummary');
+  summary.style.display = 'block';
+  summary.innerHTML = `
+    <div class="big-score">${pct}%</div>
+    <p>${totalCorrect} / ${totalCount} respuestas correctas en total</p>
+    <div class="exam-score-breakdown">${rows}</div>
+    <button id="examReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Repetir examen</button>
+  `;
+  document.getElementById('examReplayBtn').addEventListener('click', startExam);
+}
 
 // init
 updateMissedButton();

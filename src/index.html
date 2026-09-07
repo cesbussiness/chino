@@ -401,6 +401,7 @@
         <button data-mode="matchpy">🔗 Emparejar: Pinyin</button>
         <button data-mode="tones">🎵 Juego: Tonos</button>
         <button data-mode="write">✍️ Practicar escritura</button>
+        <button data-mode="exam">📝 Examen</button>
       </div>
       <div class="script-switch">
         <label class="script-toggle">
@@ -514,6 +515,57 @@
       </div>
       <p id="writeNoWords" style="display:none;color:#999;text-align:center;">No hay palabras con datos de trazos en este filtro.</p>
       <div class="game-summary" id="writeSummary" style="display:none;"></div>
+    </div>
+
+    <!-- Examen: combina tarjetas + seleccion simple + emparejar + tonos en
+         una sola secuencia, en orden, sin poder retroceder. Al final da una
+         puntuacion desglosada por tipo de pregunta para el filtro elegido. -->
+    <div class="exam-wrap" id="examMode" style="display:none;">
+      <div class="game-stats">
+        <span id="examProgress">Pregunta 1</span>
+        <span id="examPhaseLabel"></span>
+      </div>
+
+      <!-- flashcard self-check item -->
+      <div id="examFlashItem" style="display:none;">
+        <div class="flashcard" id="examFlashcard">
+          <div id="examFcIconWrap"></div>
+          <div class="front-hz" id="examFcFront">美团</div>
+          <div class="back-info" id="examFcBack">
+            <div class="py">Měituán</div>
+            <div class="en">Meituan (app name)</div>
+          </div>
+        </div>
+        <p class="game-instruction">Toca la tarjeta para ver la respuesta y evaluate con honestidad:</p>
+        <div class="practice-controls">
+          <button class="fc-review-btn" id="examFcNoBtn">❌ No la sabia</button>
+          <button class="fc-advance-btn" id="examFcYesBtn">✅ La sabia</button>
+        </div>
+      </div>
+
+      <!-- multiple choice item: shared markup for significado y tono -->
+      <div class="exam-mc-item" id="examMcItem" style="display:none;">
+        <div class="game-question">
+          <div id="examMcIconWrap"></div>
+          <div class="game-hz" id="examMcHz">美团</div>
+          <div class="game-py" id="examMcSub">Měituán</div>
+          <button class="speak-btn" id="examMcSpeak">🔊 Escuchar</button>
+        </div>
+        <p class="game-instruction" id="examMcInstruction">¿Que significa esta palabra?</p>
+        <div class="game-options" id="examMcOptions"></div>
+        <div class="game-feedback" id="examMcFeedback"></div>
+        <button id="examMcNextBtn" style="display:none;">Siguiente ▶</button>
+      </div>
+
+      <!-- matching checkpoint item -->
+      <div id="examMatchItem" style="display:none;">
+        <p class="game-instruction">Empareja cada palabra con su significado:</p>
+        <div class="match-stats" id="examMatchStats">Aciertos: 0/6 · Errores: 0</div>
+        <div class="match-grid" id="examMatchGrid"></div>
+      </div>
+
+      <p id="examEmpty" style="display:none;color:#999;text-align:center;">No hay suficientes palabras en este filtro para un examen.</p>
+      <div class="game-summary" id="examSummary" style="display:none;"></div>
     </div>
   </section>
 

@@ -274,7 +274,8 @@
     margin:0;
     flex-shrink:0;
   }
-  #fcIconWrap .app-icon, #gameIconWrap .app-icon, #tonesIconWrap .app-icon{
+  #fcIconWrap .app-icon, #gameIconWrap .app-icon, #tonesIconWrap .app-icon,
+  #examFcIconWrap .app-icon, #examMcIconWrap .app-icon{
     width:40px;height:40px;
     margin-bottom:6px;
   }
@@ -984,6 +985,65 @@
     padding:18px 22px;
     border-radius:16px;
     margin-top:16px;
+  }
+
+  /* Examen: reutiliza casi todo el estilo de tarjetas/juego/emparejar; solo
+     necesita su propio contenedor y el desglose de puntaje final. */
+  .exam-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    padding:16px 0;
+    width:100%;
+  }
+  .exam-wrap .flashcard{margin:0 auto;}
+  .exam-wrap .match-stats{
+    font-size:.85rem;
+    background:var(--gris-claro);
+    padding:8px 16px;
+    border-radius:20px;
+    margin-bottom:14px;
+    display:inline-block;
+  }
+  .exam-score-breakdown{
+    margin:12px auto 0;
+    text-align:left;
+    display:block;
+    width:fit-content;
+  }
+  .exam-score-row{
+    display:flex;
+    justify-content:space-between;
+    gap:24px;
+    font-size:.9rem;
+    padding:4px 0;
+    border-bottom:1px solid var(--borde);
+  }
+  .exam-score-row:last-child{border-bottom:none;}
+
+  /* Desktop: la palabra a la izquierda y las opciones a la derecha, igual
+     que en Adivina/Tonos, para no perder espacio ni obligar a hacer scroll. */
+  @media (min-width:901px){
+    .exam-mc-item{
+      display:grid;
+      grid-template-columns:minmax(220px, 280px) 1fr;
+      grid-template-areas:
+        "question instruction"
+        "question options"
+        "question feedback"
+        "question next";
+      column-gap:36px;
+      row-gap:10px;
+      max-width:760px;
+      width:100%;
+      margin:0 auto;
+    }
+    .exam-mc-item .game-question{grid-area:question;align-self:center;justify-self:center;}
+    .exam-mc-item .game-instruction{grid-area:instruction;margin:0 0 2px;}
+    .exam-mc-item .game-options{grid-area:options;max-width:100%;}
+    .exam-mc-item .game-feedback{grid-area:feedback;}
+    .exam-mc-item #examMcNextBtn{grid-area:next;}
   }
 
   .section-switch{

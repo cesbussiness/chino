@@ -79,7 +79,7 @@ abajo antes de tocar esos archivos.
 Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de iconos) ·
 外卖 Delivery · 京东 JD/HK超市 · 🔗 En común · Glosario completo · Práctica.
 
-**Práctica** tiene 6 modos, todos comparten nivel/sección + filtro de escritura:
+**Práctica** tiene 7 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
    + desglose de caracteres. Recall activo tipo Anki: 🔴 **Repasar** manda la
    tarjeta al final de la cola de la ronda actual (y a la cola global de
@@ -148,6 +148,31 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    scroll (`.write-practice-area` con `flex-direction:row` en desktop,
    ver bug/mejora de layout de Adivina/Tonos mas arriba, mismo criterio
    general de "evitar scroll en las vistas de pc").
+7. **📝 Examen** — a pedido del usuario ("una especie de examen ... que no
+   permita avanzar hacia atras sino solamente hacia adelante y al final me
+   deje una puntuacion"): combina en una sola secuencia, para el filtro
+   activo (nivel/sección + "solo simplificado"), 4 tipos de pregunta en
+   orden fijo — autoevaluación con tarjetas, selección múltiple de
+   significado, una ronda de emparejar (en tandas de 6, igual que el modo
+   Emparejar) y selección múltiple de tono (solo para las palabras que
+   tienen `TONE_GAME_DATA`). Recorre **toda** la sección elegida (no una
+   muestra al azar como Adivina/Tonos), salvo que el filtro combinado
+   supere 24 palabras (ej. "🔀 Todo mezclado"), en cuyo caso se toma una
+   muestra de 24 al azar para que un examen no se vuelva interminable.
+   **100% hacia adelante**: no hay ningún botón "Atrás" en ningún punto del
+   examen — la tarjeta se autocalifica con "✅ La sabía"/"❌ No la sabía"
+   (ambos avanzan), y cada pregunta de opción múltiple/emparejar se bloquea
+   apenas se responde. Al terminar, un resumen muestra el % total y el
+   desglose de aciertos por tipo de pregunta (tarjetas/significado/
+   emparejar/tonos, cada fila solo si esa sección tuvo preguntas), con
+   "🔁 Repetir examen" para una ronda nueva. No usa la cola global de
+   "Repasar falladas" (es una evaluación puntual, no una práctica
+   recurrente) y reutiliza los constructores de opciones ya existentes
+   (`buildMeaningOptions`/`buildToneOptions`, extraídos de Adivina/Tonos a
+   funciones compartidas para no duplicar la lógica de distractores).
+   **Layout**: en desktop, la pregunta de opción múltiple usa el mismo
+   patrón de 2 columnas (palabra a la izquierda, opciones a la derecha)
+   que Adivina/Tonos, mismo criterio de "evitar scroll en las vistas de pc".
 9. **"Repetir" rompia el dibujo tras completar una palabra**: el diseño
    original tenia, por palabra, un indice `writeCharIndex` + auto-avance al
    completar cada caracter (`setTimeout`) y un boton "Siguiente palabra" que
@@ -182,7 +207,7 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
     "Repasar falladas" al cambiar de juego, ver "Filtros globales" mas
     abajo) — patron que se repitio varias veces en esta sesion.
 
-Filtros globales, aplican a los 6 modos por igual: nivel (① comunes / ②
+Filtros globales, aplican a los 7 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown
 con las 23 secciones reales — si se elige una, anula el nivel; elegir un
 nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36
@@ -190,7 +215,10 @@ términos tradicionales que vienen del canal HK超市 de JD, marcados con badge
 繁), y **"📌 Repasar falladas"** (cola de palabras falladas, se vacía cuando
 las aciertas — y tambien se reinicia por completo cada vez que se cambia
 de modo/juego en `#modeSwitch`, a pedido del usuario: es una cuenta por
-sesión de juego, no algo que se arrastre de Adivina a Tarjetas, etc.).
+sesión de juego, no algo que se arrastre de Adivina a Tarjetas, etc.). El
+modo Examen respeta nivel/sección/"solo simplificado" igual que los demás,
+pero no lee ni escribe la cola de "Repasar falladas" — su propio puntaje
+final cumple ese rol para esa sección en particular.
 
 Cada palabra de 2-8 caracteres muestra, al voltear/responder:
 - Desglose de significado por carácter individual (`CHAR_DICT`, con excepciones
@@ -353,6 +381,18 @@ selector de voz si el sistema tiene más de una voz china instalada.
    un error en consola en cada "Jugar de nuevo". Encontrado al probar el
    replay de Practicar escritura. Fix: `speak()` ahora hace `if(!text) return;`
    al inicio.
+9. **Resumen del Examen: el botón "Repetir examen" quedaba en la misma línea
+   que la última fila del desglose de puntaje** (en vez de debajo, separado),
+   en desktop y mobile por igual. Causa: `.exam-score-breakdown` era
+   `display:inline-block` para poder centrarse con `margin:auto` dentro del
+   `.game-summary` (que tiene `text-align:center`), pero eso también hace que
+   el botón siguiente (otro elemento en flujo inline) se acomode a su lado en
+   vez de bajar de línea — a diferencia de los demás resúmenes (Adivina,
+   Tonos, Emparejar, Escritura), donde el elemento anterior al botón de
+   replay es un `<p>` (bloque, fuerza el salto de línea). Encontrado con
+   Playwright al probar el examen completo antes de darlo por terminado. Fix:
+   `.exam-score-breakdown` pasó a `display:block; width:fit-content; margin:12px
+   auto 0;` — sigue centrado pero como bloque, así el botón cae debajo.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
