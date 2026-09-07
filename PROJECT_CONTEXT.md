@@ -97,6 +97,14 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    pinyin con tonos en vez de vocabulario. Comparte motor con el anterior
    via `createMatchGame(opts)` (parametrizado por que campo del termino usa
    la ficha "otra": `t.e` o `t.p`) en vez de duplicar la logica del juego.
+   Ambos memoramas recorren **todo** el filtro activo en tandas de 6 (no
+   solo 6 al azar y listo) — "Tanda X de Y" en las stats, boton "Siguiente
+   tanda" al completar una, hasta cubrir las N palabras del filtro. Si la
+   ultima tanda queda con menos de 6 palabras nuevas, se completa hasta 6
+   con palabras de la cola de falladas de esa sesion y, si todavia falta,
+   con palabras ya cubiertas en tandas anteriores — asi nunca termina en
+   una ronda rara de 1-2 fichas. El resumen final usa el tamaño real del
+   filtro (ej. "14/14"), no la cantidad de fichas mostradas con relleno.
 5. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
    los tonos (para practicar oído tonal).
 6. **✍️ Practicar escritura** — orden de trazos real por carácter (via
@@ -158,6 +166,21 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    entre "Atras" y "Adelante" debajo del dibujo, y los textos de pinyin/
    significado/radicales del panel izquierdo se agrandaron notablemente
    (antes eran chicos y dificiles de leer).
+10. **Investigado, no era bug**: el usuario reporto una ronda de Emparejar
+    con "Errores: 2" pero solo 1 palabra quedo en "Repasar falladas" al
+    terminar. Revisando `createMatchGame`: cuando una ronda termina
+    (`correctCount === pairs.length`), TODAS las palabras de esa ronda
+    pasaron por un match correcto en algun momento (si no, la ronda no
+    podria haber terminado), y cada match correcto llama `removeMissed`
+    sobre esa palabra — asi que al terminar una ronda completa, el aporte
+    neto a `missedIndices` de esa ronda especifica siempre deberia ser 0,
+    sin importar cuantos intentos fallidos hubo en el camino. Confirmado
+    con Playwright (2 errores deliberados, ronda completa, `missedIndices`
+    termina en 0). El "1" que vio el usuario casi seguro era un resto de
+    antes de que existiera el reset-al-cambiar-de-juego (bug/mejora #8) —
+    estaba probando un archivo descargado viejo (de antes del reset de
+    "Repasar falladas" al cambiar de juego, ver "Filtros globales" mas
+    abajo) — patron que se repitio varias veces en esta sesion.
 
 Filtros globales, aplican a los 6 modos por igual: nivel (① comunes / ②
 pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown

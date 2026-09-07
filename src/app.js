@@ -634,20 +634,56 @@ const MATCH_ROUND_SIZE = 6;
 function createMatchGame(opts){
   // opts: gridId, statsId, summaryId, otherType ('en'|'py'), otherClass,
   // tileTextFn(term) -> string shown on the "other" tile.
-  const state = { pairs: [], tiles: [], selectedId: null, correctCount: 0, wrongCount: 0 };
+  //
+  // Works through the ENTIRE filtered pool in batches of MATCH_ROUND_SIZE
+  // (not just one random batch and done) — "Siguiente tanda" continues to
+  // the next batch until every word in the pool has been covered. If the
+  // last batch would be smaller than MATCH_ROUND_SIZE (pool size isn't a
+  // multiple of it), it's padded back up to full size by pulling first
+  // from the missed-words queue, then from words already covered earlier
+  // in this same session, so no round ends on an oddly tiny 1-2 tile batch.
+  const state = {
+    remainingPool: [], coveredIndices: new Set(), pairs: [], tiles: [],
+    selectedId: null, correctCount: 0, wrongCount: 0,
+    totalPool: 0, totalWrong: 0, batchNum: 0, totalBatches: 0,
+  };
 
   function start(){
     const pool = getPoolIndices(currentLevel);
     const grid = document.getElementById(opts.gridId);
     const stats = document.getElementById(opts.statsId);
+    document.getElementById(opts.summaryId).style.display = 'none';
     if(pool.length === 0){
       grid.innerHTML = '<p style="text-align:center;color:#999;">No hay suficientes palabras en este filtro.</p>';
       stats.textContent = '';
       return;
     }
-    const size = Math.min(MATCH_ROUND_SIZE, pool.length);
-    const chosen = shuffle([...pool]).slice(0, size);
-    state.pairs = chosen.map(i => ALL_TERMS[i]);
+    state.remainingPool = shuffle([...pool]);
+    state.coveredIndices = new Set();
+    state.totalPool = state.remainingPool.length;
+    state.totalWrong = 0;
+    state.batchNum = 0;
+    state.totalBatches = Math.ceil(state.totalPool / MATCH_ROUND_SIZE);
+    nextBatch();
+  }
+
+  function nextBatch(){
+    state.batchNum++;
+    let batchIdxs = state.remainingPool.splice(0, MATCH_ROUND_SIZE);
+    if(batchIdxs.length > 0 && batchIdxs.length < MATCH_ROUND_SIZE){
+      const need = MATCH_ROUND_SIZE - batchIdxs.length;
+      const exclude = new Set(batchIdxs);
+      const missedCandidates = shuffle(Array.from(missedIndices).filter(i => !exclude.has(i)));
+      const pad = missedCandidates.slice(0, need);
+      pad.forEach(i => exclude.add(i));
+      if(pad.length < need){
+        const coveredCandidates = shuffle(Array.from(state.coveredIndices).filter(i => !exclude.has(i)));
+        pad.push(...coveredCandidates.slice(0, need - pad.length));
+      }
+      batchIdxs = batchIdxs.concat(pad);
+    }
+    batchIdxs.forEach(i => state.coveredIndices.add(i));
+    state.pairs = batchIdxs.map(i => ALL_TERMS[i]);
     state.tiles = [];
     state.pairs.forEach((t, pairId)=>{
       state.tiles.push({id:'hz'+pairId, type:'hz', text:t.h, pairId, matched:false, term:t});
@@ -658,7 +694,7 @@ function createMatchGame(opts){
     state.correctCount = 0;
     state.wrongCount = 0;
     document.getElementById(opts.summaryId).style.display = 'none';
-    grid.style.display = 'grid';
+    document.getElementById(opts.gridId).style.display = 'grid';
     render();
     updateStats();
   }
@@ -670,8 +706,9 @@ function createMatchGame(opts){
   }
 
   function updateStats(){
+    const batchLabel = state.totalBatches > 1 ? `Tanda ${state.batchNum} de ${state.totalBatches} — ` : '';
     document.getElementById(opts.statsId).textContent =
-      `Aciertos: ${state.correctCount}/${state.pairs.length} · Errores: ${state.wrongCount}`;
+      `${batchLabel}Aciertos: ${state.correctCount}/${state.pairs.length} · Errores: ${state.wrongCount}`;
   }
 
   document.getElementById(opts.gridId).addEventListener('click', (e)=>{
@@ -715,7 +752,11 @@ function createMatchGame(opts){
       state.selectedId = null;
       updateStats();
       if(state.correctCount === state.pairs.length){
-        setTimeout(showSummary, 500);
+        state.totalWrong += state.wrongCount;
+        setTimeout(() => {
+          if(state.remainingPool.length > 0) showBatchDone();
+          else showFinalSummary();
+        }, 500);
       }
     }else{
       state.wrongCount++;
@@ -730,13 +771,25 @@ function createMatchGame(opts){
     }
   });
 
-  function showSummary(){
+  function showBatchDone(){
     document.getElementById(opts.gridId).style.display = 'none';
     const summary = document.getElementById(opts.summaryId);
     summary.style.display = 'block';
     summary.innerHTML = `
-      <div class="big-score">${state.pairs.length} / ${state.pairs.length}</div>
-      <p>Ronda completa con ${state.wrongCount} error(es)</p>
+      <div class="big-score">✅ Tanda ${state.batchNum} de ${state.totalBatches}</div>
+      <p>${state.remainingPool.length} palabra(s) mas por delante</p>
+      <button class="match-replay-btn speak-btn" style="margin-top:8px;">Siguiente tanda ▶</button>
+    `;
+    summary.querySelector('.match-replay-btn').addEventListener('click', nextBatch);
+  }
+
+  function showFinalSummary(){
+    document.getElementById(opts.gridId).style.display = 'none';
+    const summary = document.getElementById(opts.summaryId);
+    summary.style.display = 'block';
+    summary.innerHTML = `
+      <div class="big-score">🎉 ${state.totalPool} / ${state.totalPool}</div>
+      <p>Completaste todas las palabras de este filtro, con ${state.totalWrong} error(es) en total</p>
       <button class="match-replay-btn speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
     `;
     summary.querySelector('.match-replay-btn').addEventListener('click', start);
