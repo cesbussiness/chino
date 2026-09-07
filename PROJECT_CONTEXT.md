@@ -157,8 +157,10 @@ pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdo
 con las 23 secciones reales — si se elige una, anula el nivel; elegir un
 nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36
 términos tradicionales que vienen del canal HK超市 de JD, marcados con badge
-繁), y **"📌 Repasar falladas"** (cola de palabras falladas, compartida entre
-los 4 juegos, se vacía cuando las aciertas).
+繁), y **"📌 Repasar falladas"** (cola de palabras falladas, se vacía cuando
+las aciertas — y tambien se reinicia por completo cada vez que se cambia
+de modo/juego en `#modeSwitch`, a pedido del usuario: es una cuenta por
+sesión de juego, no algo que se arrastre de Adivina a Tarjetas, etc.).
 
 Cada palabra de 2-8 caracteres muestra, al voltear/responder:
 - Desglose de significado por carácter individual (`CHAR_DICT`, con excepciones

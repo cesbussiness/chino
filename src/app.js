@@ -595,6 +595,11 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.querySelectorAll('#modeSwitch button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   currentMode = btn.getAttribute('data-mode');
+  // "Repasar las que fallaste" es por juego: cambiar de juego arranca esa
+  // cuenta de nuevo en vez de arrastrar los errores del juego anterior.
+  missedIndices.clear();
+  reviewMissedMode = false;
+  updateMissedButton();
   document.getElementById('cardsMode').style.display = currentMode === 'cards' ? '' : 'none';
   document.getElementById('gameMode').style.display = currentMode === 'game' ? '' : 'none';
   document.getElementById('matchMode').style.display = currentMode === 'match' ? '' : 'none';
