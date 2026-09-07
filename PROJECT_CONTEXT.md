@@ -81,7 +81,13 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
 
 **Práctica** tiene 5 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
-   + desglose de caracteres.
+   + desglose de caracteres. Recall activo tipo Anki: 🔴 **Repasar** manda la
+   tarjeta al final de la cola de la ronda actual (y a la cola global de
+   falladas); 🟢 **Avanzar** la saca de la ronda (y la saca de falladas si
+   estaba ahi). Sigue hasta vaciar la cola — "0 de N dominadas" en el pie —
+   y ahi muestra un resumen con "🔁 Repasar de nuevo". Sin boton "siguiente"
+   pasivo: a pedido del usuario, la logica es autoevaluarse hasta dominar
+   todas las tarjetas del filtro activo, no simplemente hojearlas.
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Juego: Emparejar** — memorama hanzi↔inglés.
 4. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian

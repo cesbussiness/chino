@@ -384,6 +384,10 @@
     background:var(--gris-claro);
     color:var(--negro);
   }
+  .practice-controls button.fc-review-btn{background:var(--rojo);color:#fff;}
+  .practice-controls button.fc-review-btn:hover{background:#c22f34;}
+  .practice-controls button.fc-advance-btn{background:var(--verde);color:#fff;}
+  .practice-controls button.fc-advance-btn:hover{background:#25913a;}
   .progress-txt{font-size:.85rem;color:var(--gris);}
 
   /* Handwriting practice: en mobile todo apilado (igual que antes); en

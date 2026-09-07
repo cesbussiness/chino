@@ -350,33 +350,76 @@ function getPoolIndices(level){
 }
 
 // ---------------------------------------------------------------
-// Flashcard review mode
+// Flashcard review mode — active recall: "Repasar" (no la se, roja) manda
+// la tarjeta al final de la cola para volver a verla; "Avanzar" (si la se,
+// verde) la saca de la ronda. Sigue hasta vaciar la cola (dominarlas todas).
 // ---------------------------------------------------------------
-let fcIndex = -1;
-let fcOrder = [];
+let fcQueue = [];
+let fcTotalCount = 0;
+let fcMasteredCount = 0;
+
 function resetOrder(){
-  fcOrder = shuffle(getPoolIndices(currentLevel));
-  fcIndex = -1;
+  fcQueue = shuffle(getPoolIndices(currentLevel));
+  fcTotalCount = fcQueue.length;
+  fcMasteredCount = 0;
 }
+
+function setCardsUiState(active){
+  document.getElementById('flashcard').style.display = active ? '' : 'none';
+  document.getElementById('fcControls').style.display = active ? '' : 'none';
+  document.getElementById('fcProgress').style.display = active ? '' : 'none';
+  document.getElementById('fcSummary').style.display = active ? 'none' : 'block';
+}
+
 function nextCard(){
-  if(fcOrder.length === 0){ resetOrder(); }
-  fcIndex++;
-  if(fcIndex >= fcOrder.length){ resetOrder(); fcIndex = 0; }
-  const term = ALL_TERMS[fcOrder[fcIndex]];
+  if(fcQueue.length === 0){
+    setCardsUiState(false);
+    const summary = document.getElementById('fcSummary');
+    summary.innerHTML = fcTotalCount === 0
+      ? `<p style="color:#999;">No hay tarjetas en este filtro.</p>`
+      : `
+        <div class="big-score">🎉 ${fcTotalCount} / ${fcTotalCount}</div>
+        <p>¡Dominaste todas las tarjetas de esta ronda!</p>
+        <button id="fcReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Repasar de nuevo</button>
+      `;
+    if(fcTotalCount > 0){
+      document.getElementById('fcReplayBtn').addEventListener('click', ()=>{ resetOrder(); nextCard(); });
+    }
+    return;
+  }
+  setCardsUiState(true);
+  const term = ALL_TERMS[fcQueue[0]];
   document.getElementById('fcFront').innerHTML = term.h + tradBadge(term.t);
   document.getElementById('fcBack').innerHTML = `<div class="py">${term.p}</div><div class="en">${term.e}</div>${renderCharBreakdown(term.h)}`;
   document.getElementById('flashcard').classList.remove('flipped');
-  document.getElementById('fcProgress').textContent = `Tarjeta ${fcIndex+1} de ${fcOrder.length}`;
+  document.getElementById('fcProgress').textContent = `${fcMasteredCount} de ${fcTotalCount} dominadas`;
   document.getElementById('fcSpeak').setAttribute('data-current', term.h);
   const iconSrc = getIconB64(term.sectionKey, term.h);
   document.getElementById('fcIconWrap').innerHTML = iconSrc
     ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
     : '';
 }
+
 document.getElementById('flashcard').addEventListener('click', ()=>{
   document.getElementById('flashcard').classList.toggle('flipped');
 });
-document.getElementById('fcNext').addEventListener('click', nextCard);
+
+document.getElementById('fcAdvanceBtn').addEventListener('click', ()=>{
+  if(fcQueue.length === 0) return;
+  const term = ALL_TERMS[fcQueue.shift()];
+  removeMissed(term);
+  fcMasteredCount++;
+  nextCard();
+});
+
+document.getElementById('fcReviewBtn').addEventListener('click', ()=>{
+  if(fcQueue.length === 0) return;
+  const idx = fcQueue.shift();
+  fcQueue.push(idx);
+  addMissed(ALL_TERMS[idx]);
+  nextCard();
+});
+
 document.getElementById('fcSpeak').addEventListener('click', ()=>{
   const hz = document.getElementById('fcSpeak').getAttribute('data-current');
   speak(hz);
