@@ -314,29 +314,73 @@
     padding:10px 14px;
     border-radius:20px;
     border:1px solid var(--borde);
-    font-size:.9rem;
+    /* 16px, no un rem mas chico: en iOS Safari cualquier input/select con
+       font-size menor a 16px hace que la pagina haga zoom automatico al
+       tocarlo, lo que se siente como que el control "no responde". */
+    font-size:16px;
   }
+  /* Mobile/tablet (<901px): grid de 2 columnas (icono + contenido) en vez de
+     una sola fila fija. Con columnas de ancho fijo (120px/150px) + un tag de
+     titulo de seccion que puede ser largo (ej. "Pagina 1 del menu de iconos
+     (首页)") y white-space:nowrap, la fila entera terminaba midiendo ~777px
+     de ancho minimo SIN IMPORTAR el viewport (320/375/414/768px probados),
+     forzando scroll horizontal en toda la pestana Glosario — bug real
+     encontrado en la auditoria de QA/responsive. Fix: en mobile cada fila es
+     un grid de 3 líneas (hanzi+audio / seccion+pinyin / significado), cada
+     una envolviendo su propio contenido en vez de forzar ancho. Desde 901px
+     (mismo corte que el resto del sitio) se vuelve a la fila compacta
+     original de una sola linea con columnas fijas (via `display:contents`
+     en `.glossary-meta` para que tag/pinyin vuelvan a ser celdas propias).
+   */
   .glossary-row{
-    display:flex;
+    display:grid;
+    grid-template-columns:34px 1fr auto;
+    grid-template-areas:
+      "icon hz speak"
+      "icon meta meta"
+      "icon en en";
+    column-gap:10px;
+    row-gap:4px;
     align-items:center;
-    gap:14px;
     padding:10px 12px;
     border-bottom:1px solid var(--borde);
     background:var(--card-bg);
   }
   .glossary-row:nth-child(even){background:#fbfbf8;}
-  .glossary-row .hz{font-size:1.15rem;font-weight:700;width:120px;flex-shrink:0;}
-  .glossary-row .py{color:var(--azul);font-weight:600;width:150px;flex-shrink:0;font-size:.85rem;}
-  .glossary-row .en{flex:1;font-size:.82rem;color:var(--gris);}
+  .glossary-row .app-icon-sm{grid-area:icon;align-self:start;}
+  .glossary-row .hz{grid-area:hz;font-size:1.1rem;font-weight:700;}
+  .glossary-row .speak-btn{grid-area:speak;}
+  .glossary-row .glossary-meta{
+    grid-area:meta;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px 10px;
+  }
+  .glossary-row .py{color:var(--azul);font-weight:600;font-size:.85rem;}
+  .glossary-row .en{grid-area:en;font-size:.82rem;color:var(--gris);}
   .glossary-row .tag{
     font-size:.65rem;
     background:var(--gris-claro);
     color:#555;
     padding:2px 6px;
     border-radius:6px;
-    margin-right:8px;
-    flex-shrink:0;
-    white-space:nowrap;
+    white-space:normal;
+  }
+  @media (min-width:901px){
+    .glossary-row{
+      display:flex;
+      flex-wrap:nowrap;
+      align-items:center;
+      gap:14px;
+    }
+    .glossary-row .app-icon-sm{order:1;}
+    .glossary-row .glossary-meta{display:contents;}
+    .glossary-row .tag{order:2;flex-shrink:0;white-space:nowrap;margin-right:8px;}
+    .glossary-row .hz{order:3;width:120px;flex-shrink:0;}
+    .glossary-row .py{order:4;width:150px;flex-shrink:0;}
+    .glossary-row .en{order:5;flex:1;}
+    .glossary-row .speak-btn{order:6;}
   }
 
   /* flashcard practice */
@@ -370,7 +414,13 @@
   .flashcard.flipped .back-info{display:block;}
   .flashcard .back-info .py{color:var(--azul);font-size:clamp(1.15rem, 4.5vw, 1.4rem);font-weight:700;margin-bottom:8px;}
   .flashcard .back-info .en{font-size:clamp(1rem, 3.8vw, 1.15rem);color:var(--gris);}
-  .practice-controls{display:flex;gap:10px;}
+  /* flex-wrap:wrap es una red de seguridad: en pantallas muy angostas (320px,
+     el iPhone SE 1a gen y similares) los 3 botones ("Repasar"/"Escuchar"/
+     "Avanzar") mas su padding no entraban en una sola linea y forzaban ~3-4px
+     de scroll horizontal en toda la pagina (encontrado en la auditoria de
+     QA/responsive). A partir de ~340px de ancho entran perfectos en una
+     linea, asi que el wrap no cambia nada visualmente ahi. */
+  .practice-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;}
   .practice-controls button{
     border:none;
     background:#222;
@@ -1067,7 +1117,9 @@
     padding:8px 10px;
     border-radius:10px;
     border:1px solid #bcd8ff;
-    font-size:.82rem;
+    /* 16px fijo (no rem) por la misma razon que .search-wrap input: evita el
+       zoom automatico de iOS Safari en selects con letra chica. */
+    font-size:16px;
     background:#fff;
   }
   .tones-options .option-btn{
@@ -1133,7 +1185,9 @@
     padding:5px 8px;
     border-radius:8px;
     border:1px solid rgba(0,0,0,.15);
-    font-size:.75rem;
+    /* 16px fijo, misma razon que #sectionSelect: evita el zoom automatico
+       de iOS Safari en selects con letra chica. */
+    font-size:16px;
     background:#fff;
   }
   .voice-hint{

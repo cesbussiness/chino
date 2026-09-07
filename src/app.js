@@ -132,34 +132,35 @@ function speak(text){
     return;
   }
   try{
-    // Chrome/Edge have a known race condition where calling speak() in the same tick
-    // right after cancel() can silently drop or misapply the new utterance's rate.
-    // A short delay lets the cancel fully complete before the new (correctly-timed)
-    // utterance is queued, so each click reliably plays back at the currently
-    // selected speed.
-    window.speechSynthesis.cancel();
-    setTimeout(()=>{
-      try{
-        const utter = new SpeechSynthesisUtterance(clean);
-        utter.lang = 'zh-CN';
-        utter.rate = speechRate;
-        utter.pitch = 1;
-        utter.volume = 1;
-        const voices = window.speechSynthesis.getVoices();
-        let zhVoice = null;
-        if(selectedVoiceName){
-          zhVoice = voices.find(v=>v.name === selectedVoiceName);
-        }
-        if(!zhVoice){
-          zhVoice = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('zh'));
-        }
-        if(zhVoice) utter.voice = zhVoice;
-        utter.onerror = ()=>{ showSpeechToast(); };
-        window.speechSynthesis.speak(utter);
-      }catch(e2){
-        showSpeechToast();
-      }
-    }, 60);
+    // IMPORTANT (iOS Safari): speechSynthesis.speak() only works when called
+    // SYNCHRONOUSLY inside the click handler that started from a real user
+    // tap — any setTimeout/Promise delay in between makes iOS silently drop
+    // the call (no error, no sound, nothing). An earlier version of this
+    // function used a 60ms setTimeout here to dodge a Chrome/Edge race
+    // condition (calling speak() in the same tick right after cancel() could
+    // misapply the new utterance's rate) — that fixed Chrome but broke every
+    // audio button on iPhone/iPad. Fix: only cancel when something is
+    // actually still playing (the common case — nothing playing — skips
+    // cancel() entirely and speaks immediately), and never defer speak()
+    // itself, so the call always stays inside the original tap.
+    const synth = window.speechSynthesis;
+    if(synth.speaking || synth.pending) synth.cancel();
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'zh-CN';
+    utter.rate = speechRate;
+    utter.pitch = 1;
+    utter.volume = 1;
+    const voices = synth.getVoices();
+    let zhVoice = null;
+    if(selectedVoiceName){
+      zhVoice = voices.find(v=>v.name === selectedVoiceName);
+    }
+    if(!zhVoice){
+      zhVoice = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('zh'));
+    }
+    if(zhVoice) utter.voice = zhVoice;
+    utter.onerror = ()=>{ showSpeechToast(); };
+    synth.speak(utter);
   }catch(e){
     showSpeechToast();
   }
@@ -291,11 +292,13 @@ function renderGlossary(filter=''){
     return `
     <div class="glossary-row">
       ${iconHtml}
-      <span class="tag">${t.section.split('—')[0].trim()}</span>
       <span class="hz">${t.h}${tradBadge(t.t)}</span>
-      <span class="py">${t.p}</span>
-      <span class="en">${t.e}</span>
       <button class="speak-btn" data-hz="${t.h.replace(/"/g,'&quot;')}">🔊</button>
+      <span class="glossary-meta">
+        <span class="tag">${t.section.split('—')[0].trim()}</span>
+        <span class="py">${t.p}</span>
+      </span>
+      <span class="en">${t.e}</span>
     </div>
   `;
   }).join('') || '<p style="padding:14px;color:#999;">Sin resultados.</p>';

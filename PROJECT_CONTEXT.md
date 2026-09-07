@@ -393,6 +393,115 @@ selector de voz si el sistema tiene más de una voz china instalada.
    Playwright al probar el examen completo antes de darlo por terminado. Fix:
    `.exam-score-breakdown` pasó a `display:block; width:fit-content; margin:12px
    auto 0;` — sigue centrado pero como bloque, así el botón cae debajo.
+10. **CRÍTICO — el audio no sonaba en iPhone/iPad (reportado por el usuario:
+    "en el Apple no funcionan los botones audios ni comandos")**. Causa raíz:
+    `speak()` llamaba `speechSynthesis.cancel()` y despues, dentro de un
+    `setTimeout(..., 60)`, `speechSynthesis.speak()` (ese delay se agregó en
+    el bug #2 para esquivar una condición de carrera de Chrome/Edge). iOS
+    Safari exige que `speechSynthesis.speak()` se llame de forma **sincrónica**,
+    dentro del mismo tick del evento de click/touch iniciado por el usuario —
+    cualquier `setTimeout`/`Promise` de por medio hace que iOS pierda el
+    "user activation" y descarte la llamada **en silencio** (sin
+    `onerror`, sin excepción, sin nada) — coincide exacto con "no funciona,
+    sin ningun aviso". No se pudo probar en un iPhone/Safari real en este
+    entorno (herramientas de dev remoto solo tienen Chromium instalado), asi
+    que el fix se basa en el comportamiento documentado de iOS Safari, no en
+    una prueba en dispositivo — recomendado que el usuario confirme en un
+    iPhone real. Fix: se saco el `setTimeout` por completo. Ahora solo se
+    llama `cancel()` si `speechSynthesis.speaking||.pending` es verdadero (el
+    caso comun — nada sonando — ni siquiera llama a `cancel()`), y `speak()`
+    se llama siempre en el mismo tick sincronico que disparo el boton.
+    Verificado con Playwright que `speechSynthesis.speak()` ahora se invoca
+    sincronicamente (ver commit de esta auditoria).
+11. **iOS Safari: los `<select>`/`<input>` con letra chica hacian zoom
+    automatico de toda la pagina al tocarlos** (`#sectionSelect`,
+    `#voiceSelect`, `#searchInput` — `font-size` entre .75rem y .9rem, todos
+    por debajo de 16px). Es un comportamiento estandar de iOS Safari: si un
+    campo enfocable tiene `font-size < 16px`, Safari asume que el usuario
+    necesita zoom para leerlo y lo aplica solo, lo que se siente como que "el
+    control no responde" (la pagina salta/hace zoom en vez de abrir el
+    dropdown con normalidad). Fix: los 3 pasaron a `font-size:16px` fijo (no
+    `rem`, para que no dependa de si el elemento raiz cambia de tamaño).
+12. **Glosario completo: scroll horizontal fijo (~777px de ancho minimo) en
+    CUALQUIER pantalla angosta** (320/375/414/768px probados, todos con el
+    mismo overflow). Causa: `.glossary-row` era una sola fila `flex` con
+    columnas de ancho fijo (`.hz` 120px, `.py` 150px) mas un `.tag` con
+    `white-space:nowrap` que en varias secciones es un titulo largo (ej.
+    "Pagina 1 del menu de iconos (首页)", "Barra de navegacion inferior
+    (global)") — esos anchos fijos sumados nunca entraban en un telefono,
+    sin importar cuan angosto fuera el viewport. Encontrado con una
+    auditoria automatizada de Playwright que mide `scrollWidth` vs
+    `clientWidth` en 7 anchos (320 a 1440px) x las 7 pestañas x los 7 modos
+    de Practica. Fix: en <901px cada fila pasa a un grid de 3 lineas (icono+
+    hanzi+audio arriba, seccion+pinyin en medio, significado en ingles
+    abajo, todo el texto envolviendo libremente); desde 901px vuelve a la
+    fila compacta original de una sola linea (via `display:contents` en un
+    `<span class="glossary-meta">` que agrupa tag+pinyin, para que puedan
+    volver a ser columnas independientes en el layout de escritorio).
+13. **Practica (tarjetas): ~3-4px de scroll horizontal en pantallas de
+    320px de ancho** (iPhone SE 1a gen y similares angostos). Los 3 botones
+    de `.practice-controls` ("🔴 Repasar" / "🔊 Escuchar" / "Avanzar ▶") con
+    su padding no entraban en una sola linea en el viewport mas angosto
+    probado. Encontrado en la misma auditoria automatizada que el bug #12.
+    Fix: `.practice-controls` ahora tiene `flex-wrap:wrap` (red de
+    seguridad — desde ~340px de ancho los 3 botones entran igual en una
+    linea, asi que no cambia nada visualmente ahi).
+
+## Auditoria QA/responsive + compatibilidad iOS (esta sesion)
+
+A pedido del usuario ("prueba de qa y auditoria grafica... 100% responsiva
+offline... funcione en Android y Apple"), se corrio una auditoria
+automatizada con Playwright (Chromium headless, no hay WebKit real
+instalado en este entorno — ver limitacion mas abajo) que:
+
+- Midio `document.documentElement.scrollWidth` vs `clientWidth` en 7 anchos
+  de viewport (320, 375, 414, 768, 900, 1024, 1440px) x las 7 pestañas x los
+  7 modos de Practica (49 combinaciones x 7 anchos = 343 checks) buscando
+  scroll horizontal — encontro y corrigio los bugs #12 y #13 de arriba.
+  Resultado final: **cero overflow horizontal en cualquier combinacion**.
+- Reviso visualmente (capturas de pantalla) cada pestaña y cada modo en
+  mobile/tablet/desktop para consistencia grafica (mismos colores, radios de
+  borde, tipografia, espaciado) — no aparecieron mas inconsistencias
+  ademas de las corregidas arriba.
+- Reviso el codigo fuente buscando patrones especificos que rompen en iOS
+  Safari (no solo "se ve distinto" sino "no funciona"): uso de
+  `speechSynthesis` fuera del tick sincronico del click (bug #10 arriba),
+  `font-size` chico en campos enfocables (bug #11), sintaxis JS moderna que
+  Safari viejo no soporte (no se encontro ninguna — no hay `?.`, `??`,
+  `.at()`, `structuredClone`, etc.), y soporte de eventos touch en la
+  libreria de escritura vendorizada (`hanzi-writer.min.js` ya maneja
+  `touchstart`/`touchmove`/`touchend` nativamente, sin cambios necesarios).
+- Se agrego un bloque `<noscript>` al principio del `<body>` con un aviso
+  grande explicando el escenario de "Vista rapida" de iOS (ver seccion de
+  abajo) — antes esa explicacion solo vivia en la pestaña Introduccion, que
+  en teoria ya es visible sin JS (tiene `class="panel active"` fijo en el
+  HTML) pero el `<noscript>` la hace imposible de pasar por alto apenas se
+  abre el archivo.
+
+**Orden ratificado de los controles en la vista movil de Practica** (de
+arriba a abajo, el mismo para los 7 modos): (1) caja colapsable "como
+funciona" (`<details>`, cerrada por defecto para no ocupar espacio), (2)
+sección específica (dropdown, filtro mas especifico), (3) nivel (chips con
+scroll horizontal propio), (4) modo/juego (chips con scroll horizontal
+propio), (5) "Solo chino simplificado" (checkbox), (6) "📌 Repasar
+falladas" (solo visible si hay algo que repasar), (7) el contenido del modo
+activo. Logica: de lo mas general (que seccion/nivel) a lo mas especifico
+(que actividad), despues un filtro de alcance adicional, y al final el
+contenido — se mantuvo asi porque ya funcionaba bien de sesiones
+anteriores, no hizo falta reordenar nada, solo se ratifica por escrito aca
+para que futuros cambios no lo rompan sin querer.
+
+**Limitacion de esta auditoria**: el entorno de desarrollo remoto solo
+tiene el motor Chromium instalado para pruebas automatizadas (no hay Safari
+ni WebKit real disponibles aca), asi que los bugs de iOS (#10 y #11) se
+diagnosticaron y corrigieron en base al comportamiento **documentado y bien
+conocido** de iOS Safari (no en base a una reproduccion en un iPhone real
+desde esta sesion). Se recomienda que el usuario (o alguien con un iPhone a
+mano) confirme que el audio y los selectores ya funcionan bien en un
+dispositivo real despues de este cambio, y que avise si algo especifico de
+iOS sigue fallando — con mas detalle (que exactamente no responde, en que
+pantalla, si el archivo se abrio directo en Safari o via Compartir/Airdrop)
+se puede diagnosticar mas preciso.
 
 ## Limitaciones conocidas (no resueltas, decisión consciente)
 
