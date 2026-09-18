@@ -117,6 +117,7 @@ function showSpeechToast(){
   speechWarningShown = true;
   const toast = document.createElement('div');
   toast.id = 'speechToast';
+  toast.className = 'info-toast';
   toast.innerHTML = `
     <div class="toast-inner">
       <strong>🔇 La voz no funciono en este navegador/equipo.</strong>
@@ -224,6 +225,136 @@ document.addEventListener('click', (e)=>{
   if(btn){ speak(btn.getAttribute('data-hz')); }
 });
 
+// ---------------------------------------------------------------
+// "Grabar mi voz": graba con el microfono (MediaRecorder) para comparar tu
+// pronunciacion con la del boton Escuchar, palabra por palabra. Nunca se
+// guarda en disco ni se envia a ningun lado (100% local, en memoria) — cada
+// instancia se resetea (se descarta la grabacion) apenas cambias de
+// tarjeta/pregunta o cerras la ventana de detalle, a pedido del usuario.
+// ---------------------------------------------------------------
+let micWarningShown = false;
+function showMicToast(){
+  if(micWarningShown) return;
+  micWarningShown = true;
+  const toast = document.createElement('div');
+  toast.id = 'micToast';
+  toast.className = 'info-toast';
+  toast.innerHTML = `
+    <div class="toast-inner">
+      <strong>🎙️ No se pudo grabar tu voz.</strong>
+      <p>Puede ser por dos motivos:</p>
+      <ul>
+        <li>El navegador pidio permiso para usar el microfono y se nego o se cerro el aviso. Revisa el
+        icono de candado/informacion junto a la barra de direcciones para permitirlo, y volve a intentar.</li>
+        <li>Este navegador o dispositivo no soporta grabar audio (poco comun en equipos modernos).</li>
+      </ul>
+      <p>Esto no afecta el resto de la guia — el boton 🔊 Escuchar sigue funcionando igual.</p>
+      <button id="micToastClose">Entendido</button>
+    </div>`;
+  document.body.appendChild(toast);
+  document.getElementById('micToastClose').addEventListener('click', ()=>{
+    toast.remove();
+  });
+}
+
+function pickRecorderMimeType(){
+  if(typeof MediaRecorder === 'undefined') return '';
+  const candidates = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+  return candidates.find(c => MediaRecorder.isTypeSupported(c)) || '';
+}
+
+function createRecorder(rootId){
+  const root = document.getElementById(rootId);
+  const btn = root.querySelector('.record-btn');
+  const audioEl = root.querySelector('.record-playback');
+  let mediaRecorder = null;
+  let stream = null;
+  let chunks = [];
+  let currentUrl = null;
+  let state = 'idle'; // idle | recording | recorded
+
+  function setState(next){
+    state = next;
+    if(state === 'idle'){
+      btn.textContent = '🎙️ Grabar mi voz';
+      btn.classList.remove('recording');
+      audioEl.style.display = 'none';
+    }else if(state === 'recording'){
+      btn.textContent = '⏹️ Detener';
+      btn.classList.add('recording');
+      audioEl.style.display = 'none';
+    }else{ // recorded
+      btn.textContent = '🎙️ Grabar de nuevo';
+      btn.classList.remove('recording');
+      audioEl.style.display = 'inline-block';
+    }
+  }
+
+  async function startRecording(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showMicToast();
+      return;
+    }
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch(e){
+      showMicToast();
+      return;
+    }
+    const mimeType = pickRecorderMimeType();
+    chunks = [];
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    }catch(e){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+      showMicToast();
+      return;
+    }
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      if(currentUrl) URL.revokeObjectURL(currentUrl);
+      currentUrl = URL.createObjectURL(blob);
+      audioEl.src = currentUrl;
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+      setState('recorded');
+    };
+    mediaRecorder.start();
+    setState('recording');
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  }
+
+  btn.addEventListener('click', ()=>{
+    if(state === 'recording') stopRecording();
+    else startRecording();
+  });
+
+  function reset(){
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      mediaRecorder.onstop = null; // descartar: no queremos que arme un blob despues del reset
+      mediaRecorder.stop();
+    }
+    mediaRecorder = null;
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+    if(currentUrl){ URL.revokeObjectURL(currentUrl); currentUrl = null; }
+    audioEl.removeAttribute('src');
+    setState('idle');
+  }
+
+  return { reset };
+}
+
+const fcRecorder = createRecorder('fcRecorder');
+const gameRecorder = createRecorder('gameRecorder');
+const tonesRecorder = createRecorder('tonesRecorder');
+const writeRecorder = createRecorder('writeRecorder');
+const examRecorder = createRecorder('examRecorder');
+const wordDetailRecorder = createRecorder('wordDetailRecorder');
+
 // tabs
 document.querySelectorAll('#tabNav button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -281,6 +412,7 @@ lightbox.addEventListener('click', (e)=>{ if(e.target===lightbox) lightbox.class
 // ---------------------------------------------------------------
 const wordDetailModal = document.getElementById('wordDetailModal');
 function openWordDetail(hz, py, en, parentHz, parentPy, parentEn){
+  wordDetailRecorder.reset();
   document.getElementById('wordDetailHz').textContent = hz;
   document.getElementById('wordDetailPy').textContent = py;
   document.getElementById('wordDetailEn').textContent = en;
@@ -304,8 +436,15 @@ document.addEventListener('click', (e)=>{
     chip.dataset.parentHz, chip.dataset.parentPy, chip.dataset.parentEn
   );
 }, true);
-document.getElementById('wordDetailClose').addEventListener('click', ()=>wordDetailModal.classList.remove('active'));
-wordDetailModal.addEventListener('click', (e)=>{ if(e.target===wordDetailModal) wordDetailModal.classList.remove('active'); });
+document.getElementById('wordDetailClose').addEventListener('click', ()=>{
+  wordDetailRecorder.reset();
+  wordDetailModal.classList.remove('active');
+});
+wordDetailModal.addEventListener('click', (e)=>{
+  if(e.target!==wordDetailModal) return;
+  wordDetailRecorder.reset();
+  wordDetailModal.classList.remove('active');
+});
 document.getElementById('wordDetailSpeak').addEventListener('click', ()=>{
   speak(document.getElementById('wordDetailSpeak').getAttribute('data-current'));
 });
@@ -462,6 +601,7 @@ function setCardsUiState(active){
 }
 
 function nextCard(){
+  fcRecorder.reset();
   if(fcQueue.length === 0){
     setCardsUiState(false);
     const summary = document.getElementById('fcSummary');
@@ -543,6 +683,7 @@ function startGameRound(){
 }
 
 function showGameQuestion(){
+  gameRecorder.reset();
   gameAnswered = false;
   document.getElementById('gameNextBtn').style.display = 'none';
   document.getElementById('gameFeedback').textContent = '';
@@ -955,6 +1096,7 @@ function startTonesRound(){
 }
 
 function showTonesQuestion(){
+  tonesRecorder.reset();
   tonesAnswered = false;
   document.getElementById('tonesNextBtn').style.display = 'none';
   document.getElementById('tonesFeedback').textContent = '';
@@ -1158,6 +1300,7 @@ function quizCurrentChar(){
 }
 
 function showWriteAtPosition(){
+  writeRecorder.reset();
   const { termIdx, ch } = writeSequence[writeSeqPos];
   const term = ALL_TERMS[termIdx];
   document.getElementById('writePy').innerHTML = term.p + tradBadge(term.t);
@@ -1333,6 +1476,7 @@ document.getElementById('examFcNoBtn').addEventListener('click', ()=>{
 
 // --- multiple choice: significado y tono comparten la misma marcacion ---
 function showExamMc(item){
+  examRecorder.reset();
   examAnswered = false;
   const term = ALL_TERMS[item.termIdx];
   document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);
@@ -1354,6 +1498,7 @@ function showExamMc(item){
 }
 
 function showExamTone(item){
+  examRecorder.reset();
   examAnswered = false;
   const term = ALL_TERMS[item.termIdx];
   document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);

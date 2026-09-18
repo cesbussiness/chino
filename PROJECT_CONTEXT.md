@@ -108,6 +108,32 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    frenar la propagacion antes de que llegue al listener de "voltear" de
    `#flashcard` (los chips viven dentro de la cara de atras de la tarjeta,
    que es un hijo de `#flashcard`).
+   **"🎙️ Grabar mi voz" (a pedido del usuario)**: junto a cada boton
+   "🔊 Escuchar" de las secciones activas de practica (Tarjetas, Adivina,
+   Tonos, Practicar escritura, Examen, y la tarjeta grande de palabra/
+   caracter) hay un boton para grabar tu propia pronunciacion con el
+   microfono (`MediaRecorder`, 100% local — nunca se sube a ningun lado ni
+   se guarda en disco) y reproducirla para compararla con la voz del
+   sistema. No se agrego en el Glosario ni en las tarjetas de vocabulario
+   de las otras pestañas (Pantalla Principal/外卖/京东/En comun): esas son
+   listas de referencia para hojear, no tienen el concepto de "tarjeta
+   actual" que se abre/cierra o avanza, que es lo que dispara que la
+   grabacion se descarte. **La grabacion se pierde siempre** al: cambiar de
+   tarjeta/pregunta (`nextCard`, `showGameQuestion`, `showTonesQuestion`,
+   `showWriteAtPosition`, `showExamMc`/`showExamTone`), o cerrar la tarjeta
+   grande de palabra/caracter (X o tocando afuera) — nunca persiste entre
+   palabras ni entre sesiones, a pedido explicito del usuario. Implementado
+   como una factory `createRecorder(rootId)` (una instancia por seccion,
+   cada una con su propio boton + `<audio>` de reproduccion) que expone
+   `.reset()`; elige el primer `mimeType` soportado entre `audio/mp4`,
+   `audio/webm;codecs=opus`, `audio/webm` y `audio/ogg` via
+   `MediaRecorder.isTypeSupported` (Safari solo soporta mp4, Chrome/Edge
+   soportan webm — de ahi la lista de candidatos en ese orden). Si el
+   navegador no tiene `getUserMedia`/`MediaRecorder`, o el usuario niega el
+   permiso del microfono, se muestra un aviso (`showMicToast`, mismo
+   componente visual que el aviso de voz no disponible, ahora bajo la clase
+   compartida `.info-toast` en vez de un id fijo) explicando por que y que
+   el resto de la guia sigue funcionando igual.
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
    solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin
@@ -534,6 +560,15 @@ se puede diagnosticar mas preciso.
   imágenes ni de datos.
 - No hay tests automatizados formales (se validó todo con jsdom + pruebas ad
   hoc de Node durante el desarrollo, pero no quedó un test suite persistente).
+- **"Grabar mi voz" no se pudo probar en un iPhone/Safari real** (mismo motivo
+  que los bugs de iOS de mas arriba: este entorno solo tiene Chromium). Se
+  verifico con Chromium + flags de dispositivo de audio falso que
+  `getUserMedia`/`MediaRecorder` funcionan sobre `file://` (se reporta como
+  contexto seguro) y que el fallback de "no se pudo grabar" se dispara bien
+  si el permiso se niega. Lo que NO se pudo confirmar en un dispositivo real:
+  si Safari en iOS pide permiso de microfono normalmente para un archivo
+  local, y si el codec `audio/mp4` que elige `MediaRecorder` ahi se graba y
+  reproduce sin problemas. Recomendado confirmar en un iPhone real.
 
 ## Sugerencia para el repo en Code (no ejecutado aún, es una propuesta)
 

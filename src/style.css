@@ -301,6 +301,46 @@
   .speak-btn:hover{background:var(--amarillo);}
   .speak-btn:active{transform:scale(.95);}
 
+  /* Grabar mi voz: mismo look que .speak-btn pero distinto color para no
+     confundirlas (una reproduce la voz del sistema, la otra graba la tuya).
+     La grabacion se pierde al cambiar de tarjeta/pregunta o cerrar la
+     ventana de detalle — no se guarda nada en disco ni entre sesiones. */
+  .recorder{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-top:8px;
+  }
+  .record-btn{
+    margin:0;
+    border:1px solid #f3b8b5;
+    background:#fdeceb;
+    color:var(--rojo);
+    border-radius:20px;
+    padding:5px 10px;
+    font-size:.78rem;
+    cursor:pointer;
+  }
+  .record-btn:hover{background:#fbdcda;}
+  .record-btn:active{transform:scale(.95);}
+  .record-btn.recording{
+    background:var(--rojo);
+    color:#fff;
+    animation:record-pulse 1s ease-in-out infinite;
+  }
+  @keyframes record-pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.6;}
+  }
+  .record-playback{
+    display:none;
+    height:32px;
+    max-width:220px;
+    vertical-align:middle;
+  }
+
   /* Glosario / list view */
   .search-wrap{
     display:flex;
@@ -880,7 +920,10 @@
     color:var(--amarillo-osc);
   }
 
-  #speechToast{
+  /* Aviso flotante reutilizable (voz del sistema no disponible, microfono no
+     disponible, etc.) — misma clase para que cualquier aviso de este tipo
+     salga con el mismo estilo. */
+  .info-toast{
     position:fixed;
     left:12px; right:12px; bottom:12px;
     max-width:480px;
@@ -894,11 +937,11 @@
     font-size:.82rem;
     line-height:1.45;
   }
-  #speechToast .toast-inner ul{
+  .info-toast .toast-inner ul{
     margin:6px 0 10px;
     padding-left:18px;
   }
-  #speechToast button{
+  .info-toast button{
     border:none;
     background:#222;
     color:var(--amarillo);

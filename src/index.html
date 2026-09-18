@@ -439,6 +439,10 @@
         <button class="secondary" id="fcSpeak">🔊 Escuchar</button>
         <button class="fc-advance-btn" id="fcAdvanceBtn">Avanzar ▶</button>
       </div>
+      <div class="recorder" id="fcRecorder">
+        <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+        <audio class="record-playback" data-role="playback" controls></audio>
+      </div>
       <div class="progress-txt" id="fcProgress"></div>
       <div class="game-summary" id="fcSummary" style="display:none;"></div>
     </div>
@@ -455,6 +459,10 @@
         <div class="game-hz" id="gameHz">美团</div>
         <div class="game-py" id="gamePy">Měituán</div>
         <button class="speak-btn" id="gameSpeak">🔊 Escuchar</button>
+        <div class="recorder" id="gameRecorder">
+          <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+          <audio class="record-playback" data-role="playback" controls></audio>
+        </div>
       </div>
       <p class="game-instruction">¿Que significa esta palabra?</p>
       <div class="game-options" id="gameOptions"></div>
@@ -489,6 +497,10 @@
         <div class="game-hz" id="tonesHz">购物车</div>
         <div class="en" id="tonesEn" style="margin-top:2px;">shopping cart</div>
         <button class="speak-btn" id="tonesSpeak">🔊 Escuchar</button>
+        <div class="recorder" id="tonesRecorder">
+          <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+          <audio class="record-playback" data-role="playback" controls></audio>
+        </div>
       </div>
       <p class="game-instruction">¿Cual es el pinyin (con tonos) correcto?</p>
       <div class="game-options tones-options" id="tonesOptions"></div>
@@ -522,6 +534,10 @@
           <div class="practice-controls" id="writeControls">
             <button class="secondary" id="writeHintBtn">💡 Ver como se escribe</button>
             <button class="secondary" id="writeRedoBtn">↺ Repetir</button>
+          </div>
+          <div class="recorder" id="writeRecorder">
+            <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+            <audio class="record-playback" data-role="playback" controls></audio>
           </div>
         </div>
       </div>
@@ -562,6 +578,10 @@
           <div class="game-hz" id="examMcHz">美团</div>
           <div class="game-py" id="examMcSub">Měituán</div>
           <button class="speak-btn" id="examMcSpeak">🔊 Escuchar</button>
+          <div class="recorder" id="examRecorder">
+            <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+            <audio class="record-playback" data-role="playback" controls></audio>
+          </div>
         </div>
         <p class="game-instruction" id="examMcInstruction">¿Que significa esta palabra?</p>
         <div class="game-options" id="examMcOptions"></div>
@@ -600,6 +620,10 @@
       <div class="en" id="wordDetailEn">Meituan</div>
     </div>
     <button class="speak-btn" id="wordDetailSpeak">🔊 Escuchar</button>
+    <div class="recorder" id="wordDetailRecorder">
+      <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+      <audio class="record-playback" data-role="playback" controls></audio>
+    </div>
     <div id="wordDetailExtra"></div>
   </div>
 </div>
