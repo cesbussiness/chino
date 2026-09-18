@@ -271,14 +271,46 @@ function pickRecorderMimeType(){
 // 6 fijos de las secciones de practica, y los que aparecen uno por cada
 // tarjeta de vocabulario (Pantalla Principal/外卖/京东/En comun) y cada fila
 // del Glosario — cientos de instancias sin tener que inicializar cada una a
-// mano. El estado (stream/mediaRecorder/blob url) se guarda directo en el
-// elemento `.recorder` (`el._recState`). Solo puede haber UNA grabacion
+// mano. El estado (mediaRecorder/blob url) se guarda directo en el elemento
+// `.recorder` (`el._recState`). Solo puede haber UNA grabacion
 // activa/guardada a la vez en toda la pagina: empezar una nueva descarta
 // automaticamente cualquier otra que estuviera grabada o grabandose.
 let activeRecorderEl = null;
 
+// El microfono se pide UNA sola vez por sesion (pestaña abierta) y se
+// reutiliza para todas las grabaciones de todas las tarjetas — antes cada
+// tarjeta pedia su propio getUserMedia() y lo cerraba al resetear, lo que en
+// Chrome sobre file:// (que no siempre recuerda el permiso "mientras se
+// visita el sitio" entre peticiones sueltas) hacia que el aviso de permiso
+// apareciera de nuevo en cada grabacion. Con un solo stream compartido, el
+// permiso se pide una vez y el microfono queda "activo" (el indicador del
+// navegador se mantiene prendido) mientras dure la pestaña — mismo
+// compromiso que usan apps como Zoom/Discord. Si el permiso realmente no
+// persiste ni una vez por sesion, es una restriccion del navegador para
+// `file://` (no hay forma de forzarlo desde la pagina) — ver
+// PROJECT_CONTEXT.md.
+let sharedMicStream = null;
+let sharedMicStreamPromise = null;
+function getSharedMicStream(){
+  if(sharedMicStream && sharedMicStream.active) return Promise.resolve(sharedMicStream);
+  if(!sharedMicStreamPromise){
+    sharedMicStreamPromise = navigator.mediaDevices.getUserMedia({ audio: true }).then(s=>{
+      sharedMicStream = s;
+      sharedMicStreamPromise = null;
+      s.getAudioTracks()[0].addEventListener('ended', ()=>{
+        if(sharedMicStream === s) sharedMicStream = null;
+      });
+      return s;
+    }).catch(e=>{
+      sharedMicStreamPromise = null;
+      throw e;
+    });
+  }
+  return sharedMicStreamPromise;
+}
+
 function getRecorderState(el){
-  if(!el._recState) el._recState = { mediaRecorder:null, stream:null, chunks:[], url:null, state:'idle' };
+  if(!el._recState) el._recState = { mediaRecorder:null, chunks:[], url:null, state:'idle' };
   return el._recState;
 }
 
@@ -309,7 +341,10 @@ function resetRecorder(el){
     s.mediaRecorder.stop();
   }
   s.mediaRecorder = null;
-  if(s.stream){ s.stream.getTracks().forEach(t=>t.stop()); s.stream = null; }
+  // el microfono (sharedMicStream) NO se cierra aca: es compartido entre
+  // todas las tarjetas y se mantiene abierto durante toda la sesion (ver
+  // getSharedMicStream) para no tener que pedir permiso de nuevo en cada
+  // grabacion.
   if(s.url){ URL.revokeObjectURL(s.url); s.url = null; }
   const audioEl = el.querySelector('.record-playback');
   if(audioEl) audioEl.removeAttribute('src');
@@ -334,7 +369,7 @@ async function startRecorderRecording(el){
   }
   let stream;
   try{
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream = await getSharedMicStream();
   }catch(e){
     showMicToast();
     return;
@@ -346,11 +381,9 @@ async function startRecorderRecording(el){
   try{
     mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
   }catch(e){
-    stream.getTracks().forEach(t=>t.stop());
     showMicToast();
     return;
   }
-  s.stream = stream;
   s.mediaRecorder = mediaRecorder;
   activeRecorderEl = el;
   mediaRecorder.ondataavailable = (e)=>{ if(e.data.size > 0) s.chunks.push(e.data); };
@@ -359,7 +392,6 @@ async function startRecorderRecording(el){
     if(s.url) URL.revokeObjectURL(s.url);
     s.url = URL.createObjectURL(blob);
     el.querySelector('.record-playback').src = s.url;
-    if(s.stream){ s.stream.getTracks().forEach(t=>t.stop()); s.stream = null; }
     setRecorderUi(el, 'recorded');
   };
   mediaRecorder.start();

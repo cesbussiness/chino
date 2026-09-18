@@ -151,26 +151,34 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    vocabulario), el mecanismo es **completamente delegado** en vez de
    inicializar una instancia por boton: un solo listener de `click` en
    `document` para `.record-btn`, que lee/crea el estado
-   (stream/mediaRecorder/blob url) directo en el elemento `.recorder` mas
+   (mediaRecorder/blob url) directo en el elemento `.recorder` mas
    cercano (`el._recState`) — así cientos de tarjetas no cuestan cientos de
    listeners individuales. Solo puede haber **una grabacion activa/guardada
    a la vez en toda la pagina**: empezar una nueva (`startRecorderRecording`)
    descarta automaticamente cualquier otra que estuviera grabada o
-   grabandose (`activeRecorderEl`), para no dejar microfonos "olvidados"
-   abiertos en tarjetas que ya no se estan mirando.
-   **Se pierde siempre** (`resetRecorder(el)`) al: cambiar de tarjeta/
-   pregunta en cualquier modo de practica (`nextCard`, `showGameQuestion`,
+   grabandose (`activeRecorderEl`), para no dejar recordings "olvidadas" en
+   tarjetas que ya no se estan mirando.
+   **El microfono en si (`sharedMicStream`) es UN SOLO stream compartido por
+   toda la pagina**, pedido una sola vez (perezosamente, al primer click en
+   cualquier "Grabar mi voz") y reutilizado por todas las tarjetas durante
+   el resto de la sesion — ver bug #12 mas abajo, este diseño es la
+   correccion a un problema real que reporto el usuario (Chrome volvia a
+   pedir permiso de microfono en cada grabacion). El stream NO se cierra al
+   resetear una tarjeta ni al re-renderizar el Glosario; solo se cierra solo
+   si el usuario revoca el permiso o el hardware se desconecta a mitad de
+   sesion (evento `ended` del track), y se vuelve a pedir automaticamente la
+   proxima vez que haga falta.
+   **La grabacion (el audio ya grabado, no el permiso del microfono) se
+   pierde siempre** (`resetRecorder(el)`) al: cambiar de tarjeta/pregunta en
+   cualquier modo de practica (`nextCard`, `showGameQuestion`,
    `showTonesQuestion`, `showWriteAtPosition`, `showExamMc`/`showExamTone`),
    cerrar la tarjeta grande de palabra/caracter (X o tocando afuera), o —
-   caso nuevo al agregarlo al Glosario — **cada vez que se re-renderiza la
-   lista completa** (cada tecla en el buscador del Glosario llama
-   `renderGlossary()`, que reemplaza el `innerHTML` entero): antes de
-   pisar el HTML viejo se llama `resetAllRecordersIn(glossaryList)`, que
-   recorre las filas viejas y para cualquier microfono que hubiera quedado
-   abierto — el navegador NO cierra un `MediaStream` solo porque su nodo
-   del DOM desaparecio con `innerHTML=""`, hay que pararlo a mano
-   (`track.stop()`) o el icono de microfono del navegador se queda
-   prendido sin que haya ninguna UI visible para apagarlo.
+   caso nuevo al agregarlo al Glosario — cada vez que se re-renderiza la
+   lista completa (cada tecla en el buscador del Glosario llama
+   `renderGlossary()`, que reemplaza el `innerHTML` entero): antes de pisar
+   el HTML viejo se llama `resetAllRecordersIn(glossaryList)`, que recorre
+   las filas viejas y corta cualquier grabacion en curso en ellas (no el
+   microfono compartido, que sigue vivo para las filas nuevas).
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
    solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin
@@ -529,6 +537,36 @@ selector de voz si el sistema tiene más de una voz china instalada.
     Fix: `.practice-controls` ahora tiene `flex-wrap:wrap` (red de
     seguridad — desde ~340px de ancho los 3 botones entran igual en una
     linea, asi que no cambia nada visualmente ahi).
+14. **"Grabar mi voz" volvia a pedir permiso de microfono en CADA grabacion**
+    (reportado por el usuario: "cada vez que quiero grabar se me abre una
+    ventana de permisos... igual me vuelve a salir la proxima vez"). Causa:
+    cada tarjeta pedia su propio `getUserMedia()` al empezar a grabar y
+    cerraba ese stream (`track.stop()`) al resetear (cambiar de
+    tarjeta/pregunta) — asi que la SIGUIENTE grabacion, aunque fuera unos
+    segundos despues en la misma pestaña, era una peticion de permiso
+    nueva. Chrome no siempre recuerda el "permitir mientras se visita el
+    sitio" entre peticiones sueltas de `getUserMedia()` sobre `file://`
+    (un archivo local no tiene el mismo origen estable/persistente que un
+    sitio `https://`), asi que terminaba re-preguntando en cada tarjeta.
+    Fix: un solo `sharedMicStream` pedido UNA vez (perezosamente, en el
+    primer click de "Grabar mi voz" de toda la sesion) y reutilizado por
+    todas las tarjetas de ahi en adelante — resetear una tarjeta ya NO
+    cierra el microfono, solo descarta el audio grabado en esa tarjeta.
+    Verificado con Playwright (instrumentando `getUserMedia` para contar
+    llamadas): 3 grabaciones en 3 tarjetas/modos distintos → 1 sola llamada
+    a `getUserMedia`. **Limite real que este cambio NO puede arreglar**: si
+    a pesar de esto el navegador sigue pidiendo permiso cada vez que se
+    **recarga la pagina o se reabre el archivo**, es una restriccion de
+    Chrome para `file://` que ninguna pagina puede forzar a cambiar desde
+    JavaScript — el permiso vuelve a pedirse una vez por cada carga de
+    pagina nueva (no por cada grabacion dentro de la misma carga, que es lo
+    que este fix soluciona). Si el usuario prueba con un archivo descargado
+    de nuevo cada vez con un nombre distinto (`Guia...(1).html`,
+    `Guia...(2).html`, patron ya visto varias veces en esta sesion), Chrome
+    puede tratar cada archivo como un origen distinto y pedir permiso de
+    nuevo aunque sea "la misma" guia — guardar el archivo siempre con el
+    mismo nombre/ubicacion deberia ayudar a que el permiso persista entre
+    sesiones tambien.
 
 ## Auditoria QA/responsive + compatibilidad iOS (esta sesion)
 
