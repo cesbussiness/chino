@@ -1,3 +1,4 @@
 dist/
 __pycache__/
 tools/audit/_makemeahanzi_dictionary.txt
+node_modules/

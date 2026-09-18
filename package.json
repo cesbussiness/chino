@@ -1,0 +1,13 @@
+{
+  "name": "guia-meituan-chino",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build script para la Guia Interactiva Meituan/JD (HTML autocontenido para clase de chino)",
+  "scripts": {
+    "build": "node build.js",
+    "build:protegido": "node build.js --protect"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^5.7.0"
+  }
+}

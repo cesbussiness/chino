@@ -34,6 +34,26 @@ agrupaciones de palabras o tonos.
   para abrir con doble clic o mandar por WhatsApp/mail. `dist/` está en
   `.gitignore` (es artefacto generado) — correr el build después de
   cualquier cambio en `src/` antes de distribuir.
+  - **`node build.js --protect`** genera ademas
+    `dist/Guia_Meituan_Chino_Interactiva.protegido.html`: identico, pero con
+    `app.js` (solo la logica propia, no `hanzi-writer.min.js` ni
+    `hanzi-data.js`) pasado por `javascript-obfuscator` — a pedido del
+    usuario, para dificultar que alguien copie/reutilice el codigo como
+    propio al entregar el archivo. Requiere `npm install` una vez
+    (`javascript-obfuscator` queda como devDependency en `package.json`,
+    nunca se entrega ni queda en el HTML final — es solo una herramienta de
+    build). **Importante, aclarado explicitamente al usuario**: esto NO es
+    cifrado real ni evita que alguien use el archivo sin pagar — un HTML que
+    tiene que correr solo/offline en el navegador no se puede cifrar de
+    verdad (el navegador necesita poder leerlo para ejecutarlo). Ofuscar
+    solo hace el codigo dificil de leer/copiar con las herramientas de
+    desarrollador; la app funciona exactamente igual para quien la abra. Se
+    valido con Playwright que el build ofuscado se comporta identico al
+    normal (los 7 modos de practica, busqueda del glosario, grabar voz) sin
+    errores de consola. `selfDefending`/`debugProtection` del ofuscador se
+    dejaron apagados a proposito por ser fragiles en distintos
+    navegadores/entornos — no vale la pena el riesgo de romper la app por
+    una capa extra de proteccion.
 - Antes de esto, todo el desarrollo fue **iterativo por chat**: cada cambio
   era un parche de texto (Python `str.replace`) directamente sobre el HTML
   monolítico. Eso se estaba poniendo frágil (bugs de cascada CSS por orden de
