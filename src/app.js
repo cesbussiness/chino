@@ -100,6 +100,10 @@ function renderCards(container, items, section){
       <div class="py">${it.p}</div>
       <div class="en">${it.e}</div>
       <button class="speak-btn" data-hz="${it.h.replace(/"/g,'&quot;')}">🔊 Escuchar</button>
+      <div class="recorder">
+        <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+        <audio class="record-playback" data-role="playback" controls></audio>
+      </div>
     </div>
   `;
   }).join('');
@@ -263,97 +267,117 @@ function pickRecorderMimeType(){
   return candidates.find(c => MediaRecorder.isTypeSupported(c)) || '';
 }
 
-function createRecorder(rootId){
-  const root = document.getElementById(rootId);
-  const btn = root.querySelector('.record-btn');
-  const audioEl = root.querySelector('.record-playback');
-  let mediaRecorder = null;
-  let stream = null;
-  let chunks = [];
-  let currentUrl = null;
-  let state = 'idle'; // idle | recording | recorded
+// Un solo mecanismo delegado maneja CUALQUIER `.recorder` de la pagina: los
+// 6 fijos de las secciones de practica, y los que aparecen uno por cada
+// tarjeta de vocabulario (Pantalla Principal/外卖/京东/En comun) y cada fila
+// del Glosario — cientos de instancias sin tener que inicializar cada una a
+// mano. El estado (stream/mediaRecorder/blob url) se guarda directo en el
+// elemento `.recorder` (`el._recState`). Solo puede haber UNA grabacion
+// activa/guardada a la vez en toda la pagina: empezar una nueva descarta
+// automaticamente cualquier otra que estuviera grabada o grabandose.
+let activeRecorderEl = null;
 
-  function setState(next){
-    state = next;
-    if(state === 'idle'){
-      btn.textContent = '🎙️ Grabar mi voz';
-      btn.classList.remove('recording');
-      audioEl.style.display = 'none';
-    }else if(state === 'recording'){
-      btn.textContent = '⏹️ Detener';
-      btn.classList.add('recording');
-      audioEl.style.display = 'none';
-    }else{ // recorded
-      btn.textContent = '🎙️ Grabar de nuevo';
-      btn.classList.remove('recording');
-      audioEl.style.display = 'inline-block';
-    }
-  }
-
-  async function startRecording(){
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      showMicToast();
-      return;
-    }
-    try{
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }catch(e){
-      showMicToast();
-      return;
-    }
-    const mimeType = pickRecorderMimeType();
-    chunks = [];
-    try{
-      mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    }catch(e){
-      stream.getTracks().forEach(t=>t.stop());
-      stream = null;
-      showMicToast();
-      return;
-    }
-    mediaRecorder.ondataavailable = (e)=>{ if(e.data.size > 0) chunks.push(e.data); };
-    mediaRecorder.onstop = ()=>{
-      const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-      if(currentUrl) URL.revokeObjectURL(currentUrl);
-      currentUrl = URL.createObjectURL(blob);
-      audioEl.src = currentUrl;
-      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
-      setState('recorded');
-    };
-    mediaRecorder.start();
-    setState('recording');
-  }
-
-  function stopRecording(){
-    if(mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-  }
-
-  btn.addEventListener('click', ()=>{
-    if(state === 'recording') stopRecording();
-    else startRecording();
-  });
-
-  function reset(){
-    if(mediaRecorder && mediaRecorder.state === 'recording'){
-      mediaRecorder.onstop = null; // descartar: no queremos que arme un blob despues del reset
-      mediaRecorder.stop();
-    }
-    mediaRecorder = null;
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
-    if(currentUrl){ URL.revokeObjectURL(currentUrl); currentUrl = null; }
-    audioEl.removeAttribute('src');
-    setState('idle');
-  }
-
-  return { reset };
+function getRecorderState(el){
+  if(!el._recState) el._recState = { mediaRecorder:null, stream:null, chunks:[], url:null, state:'idle' };
+  return el._recState;
 }
 
-const fcRecorder = createRecorder('fcRecorder');
-const gameRecorder = createRecorder('gameRecorder');
-const tonesRecorder = createRecorder('tonesRecorder');
-const writeRecorder = createRecorder('writeRecorder');
-const examRecorder = createRecorder('examRecorder');
-const wordDetailRecorder = createRecorder('wordDetailRecorder');
+function setRecorderUi(el, uiState){
+  getRecorderState(el).state = uiState;
+  const btn = el.querySelector('.record-btn');
+  const audioEl = el.querySelector('.record-playback');
+  if(uiState === 'idle'){
+    btn.textContent = '🎙️ Grabar mi voz';
+    btn.classList.remove('recording');
+    audioEl.style.display = 'none';
+  }else if(uiState === 'recording'){
+    btn.textContent = '⏹️ Detener';
+    btn.classList.add('recording');
+    audioEl.style.display = 'none';
+  }else{ // recorded
+    btn.textContent = '🎙️ Grabar de nuevo';
+    btn.classList.remove('recording');
+    audioEl.style.display = 'inline-block';
+  }
+}
+
+function resetRecorder(el){
+  if(!el) return;
+  const s = getRecorderState(el);
+  if(s.mediaRecorder && s.mediaRecorder.state === 'recording'){
+    s.mediaRecorder.onstop = null; // descartar: no queremos que arme un blob despues del reset
+    s.mediaRecorder.stop();
+  }
+  s.mediaRecorder = null;
+  if(s.stream){ s.stream.getTracks().forEach(t=>t.stop()); s.stream = null; }
+  if(s.url){ URL.revokeObjectURL(s.url); s.url = null; }
+  const audioEl = el.querySelector('.record-playback');
+  if(audioEl) audioEl.removeAttribute('src');
+  setRecorderUi(el, 'idle');
+  if(activeRecorderEl === el) activeRecorderEl = null;
+}
+
+// Llamar ANTES de reemplazar el innerHTML de una lista (Glosario en cada
+// busqueda) para parar cualquier microfono que hubiera quedado abierto en
+// una fila que esta por desaparecer del DOM — el navegador no lo cierra
+// solo con innerHTML="", el stream se queda "vivo" (icono de mic prendido)
+// hasta que se llame explicitamente a track.stop().
+function resetAllRecordersIn(container){
+  container.querySelectorAll('.recorder').forEach(resetRecorder);
+}
+
+async function startRecorderRecording(el){
+  if(activeRecorderEl && activeRecorderEl !== el) resetRecorder(activeRecorderEl);
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showMicToast();
+    return;
+  }
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }catch(e){
+    showMicToast();
+    return;
+  }
+  const mimeType = pickRecorderMimeType();
+  const s = getRecorderState(el);
+  s.chunks = [];
+  let mediaRecorder;
+  try{
+    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  }catch(e){
+    stream.getTracks().forEach(t=>t.stop());
+    showMicToast();
+    return;
+  }
+  s.stream = stream;
+  s.mediaRecorder = mediaRecorder;
+  activeRecorderEl = el;
+  mediaRecorder.ondataavailable = (e)=>{ if(e.data.size > 0) s.chunks.push(e.data); };
+  mediaRecorder.onstop = ()=>{
+    const blob = new Blob(s.chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+    if(s.url) URL.revokeObjectURL(s.url);
+    s.url = URL.createObjectURL(blob);
+    el.querySelector('.record-playback').src = s.url;
+    if(s.stream){ s.stream.getTracks().forEach(t=>t.stop()); s.stream = null; }
+    setRecorderUi(el, 'recorded');
+  };
+  mediaRecorder.start();
+  setRecorderUi(el, 'recording');
+}
+
+function stopRecorderRecording(el){
+  const s = getRecorderState(el);
+  if(s.mediaRecorder && s.mediaRecorder.state === 'recording') s.mediaRecorder.stop();
+}
+
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.record-btn');
+  if(!btn) return;
+  const el = btn.closest('.recorder');
+  if(getRecorderState(el).state === 'recording') stopRecorderRecording(el);
+  else startRecorderRecording(el);
+});
 
 // tabs
 document.querySelectorAll('#tabNav button').forEach(btn=>{
@@ -412,7 +436,7 @@ lightbox.addEventListener('click', (e)=>{ if(e.target===lightbox) lightbox.class
 // ---------------------------------------------------------------
 const wordDetailModal = document.getElementById('wordDetailModal');
 function openWordDetail(hz, py, en, parentHz, parentPy, parentEn){
-  wordDetailRecorder.reset();
+  resetRecorder(document.getElementById('wordDetailRecorder'));
   document.getElementById('wordDetailHz').textContent = hz;
   document.getElementById('wordDetailPy').textContent = py;
   document.getElementById('wordDetailEn').textContent = en;
@@ -437,12 +461,12 @@ document.addEventListener('click', (e)=>{
   );
 }, true);
 document.getElementById('wordDetailClose').addEventListener('click', ()=>{
-  wordDetailRecorder.reset();
+  resetRecorder(document.getElementById('wordDetailRecorder'));
   wordDetailModal.classList.remove('active');
 });
 wordDetailModal.addEventListener('click', (e)=>{
   if(e.target!==wordDetailModal) return;
-  wordDetailRecorder.reset();
+  resetRecorder(document.getElementById('wordDetailRecorder'));
   wordDetailModal.classList.remove('active');
 });
 document.getElementById('wordDetailSpeak').addEventListener('click', ()=>{
@@ -485,7 +509,11 @@ function renderGlossary(filter=''){
     if(!f) return true;
     return t.h.includes(f) || t.p.toLowerCase().includes(f) || t.e.toLowerCase().includes(f);
   });
-  document.getElementById('glossaryList').innerHTML = list.map(t=>{
+  const glossaryList = document.getElementById('glossaryList');
+  // parar cualquier microfono que hubiera quedado abierto en una fila que
+  // esta por desaparecer del DOM (ver resetAllRecordersIn)
+  resetAllRecordersIn(glossaryList);
+  glossaryList.innerHTML = list.map(t=>{
     const iconSrc = getIconB64(t.sectionKey, t.h);
     const iconHtml = iconSrc
       ? `<img class="app-icon app-icon-sm" src="${iconSrc}" alt="icono ${t.h}">`
@@ -500,6 +528,10 @@ function renderGlossary(filter=''){
         <span class="py">${t.p}</span>
       </span>
       <span class="en">${t.e}</span>
+      <div class="recorder glossary-recorder">
+        <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+        <audio class="record-playback" data-role="playback" controls></audio>
+      </div>
     </div>
   `;
   }).join('') || '<p style="padding:14px;color:#999;">Sin resultados.</p>';
@@ -601,7 +633,7 @@ function setCardsUiState(active){
 }
 
 function nextCard(){
-  fcRecorder.reset();
+  resetRecorder(document.getElementById('fcRecorder'));
   if(fcQueue.length === 0){
     setCardsUiState(false);
     const summary = document.getElementById('fcSummary');
@@ -683,7 +715,7 @@ function startGameRound(){
 }
 
 function showGameQuestion(){
-  gameRecorder.reset();
+  resetRecorder(document.getElementById('gameRecorder'));
   gameAnswered = false;
   document.getElementById('gameNextBtn').style.display = 'none';
   document.getElementById('gameFeedback').textContent = '';
@@ -1096,7 +1128,7 @@ function startTonesRound(){
 }
 
 function showTonesQuestion(){
-  tonesRecorder.reset();
+  resetRecorder(document.getElementById('tonesRecorder'));
   tonesAnswered = false;
   document.getElementById('tonesNextBtn').style.display = 'none';
   document.getElementById('tonesFeedback').textContent = '';
@@ -1300,7 +1332,7 @@ function quizCurrentChar(){
 }
 
 function showWriteAtPosition(){
-  writeRecorder.reset();
+  resetRecorder(document.getElementById('writeRecorder'));
   const { termIdx, ch } = writeSequence[writeSeqPos];
   const term = ALL_TERMS[termIdx];
   document.getElementById('writePy').innerHTML = term.p + tradBadge(term.t);
@@ -1476,7 +1508,7 @@ document.getElementById('examFcNoBtn').addEventListener('click', ()=>{
 
 // --- multiple choice: significado y tono comparten la misma marcacion ---
 function showExamMc(item){
-  examRecorder.reset();
+  resetRecorder(document.getElementById('examRecorder'));
   examAnswered = false;
   const term = ALL_TERMS[item.termIdx];
   document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);
@@ -1498,7 +1530,7 @@ function showExamMc(item){
 }
 
 function showExamTone(item){
-  examRecorder.reset();
+  resetRecorder(document.getElementById('examRecorder'));
   examAnswered = false;
   const term = ALL_TERMS[item.termIdx];
   document.getElementById('examMcHz').innerHTML = term.h + tradBadge(term.t);

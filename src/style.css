@@ -337,7 +337,8 @@
   .record-playback{
     display:none;
     height:32px;
-    max-width:220px;
+    max-width:100%;
+    width:200px;
     vertical-align:middle;
   }
 
@@ -378,7 +379,8 @@
     grid-template-areas:
       "icon hz speak"
       "icon meta meta"
-      "icon en en";
+      "icon en en"
+      "icon rec rec";
     column-gap:10px;
     row-gap:4px;
     align-items:center;
@@ -399,6 +401,7 @@
   }
   .glossary-row .py{color:var(--azul);font-weight:600;font-size:.85rem;}
   .glossary-row .en{grid-area:en;font-size:.82rem;color:var(--gris);}
+  .glossary-row .glossary-recorder{grid-area:rec;justify-content:flex-start;margin-top:2px;}
   .glossary-row .tag{
     font-size:.65rem;
     background:var(--gris-claro);
@@ -410,7 +413,7 @@
   @media (min-width:901px){
     .glossary-row{
       display:flex;
-      flex-wrap:nowrap;
+      flex-wrap:wrap;
       align-items:center;
       gap:14px;
     }
@@ -421,6 +424,7 @@
     .glossary-row .py{order:4;width:150px;flex-shrink:0;}
     .glossary-row .en{order:5;flex:1;}
     .glossary-row .speak-btn{order:6;}
+    .glossary-row .glossary-recorder{order:7;flex-basis:100%;justify-content:flex-start;margin:6px 0 0 44px;}
   }
 
   /* flashcard practice */

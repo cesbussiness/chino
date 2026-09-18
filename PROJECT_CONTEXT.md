@@ -109,31 +109,48 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    `#flashcard` (los chips viven dentro de la cara de atras de la tarjeta,
    que es un hijo de `#flashcard`).
    **"🎙️ Grabar mi voz" (a pedido del usuario)**: junto a cada boton
-   "🔊 Escuchar" de las secciones activas de practica (Tarjetas, Adivina,
-   Tonos, Practicar escritura, Examen, y la tarjeta grande de palabra/
-   caracter) hay un boton para grabar tu propia pronunciacion con el
+   "🔊 Escuchar" de TODA la guia — las 6 secciones activas de practica
+   (Tarjetas, Adivina, Tonos, Practicar escritura, Examen, la tarjeta
+   grande de palabra/caracter) **y tambien** cada tarjeta de vocabulario de
+   Pantalla Principal/外卖/京东/En comun y cada fila del Glosario completo
+   (a pedido explicito del usuario, que en un principio se habian dejado
+   afuera) — hay un boton para grabar tu propia pronunciacion con el
    microfono (`MediaRecorder`, 100% local — nunca se sube a ningun lado ni
    se guarda en disco) y reproducirla para compararla con la voz del
-   sistema. No se agrego en el Glosario ni en las tarjetas de vocabulario
-   de las otras pestañas (Pantalla Principal/外卖/京东/En comun): esas son
-   listas de referencia para hojear, no tienen el concepto de "tarjeta
-   actual" que se abre/cierra o avanza, que es lo que dispara que la
-   grabacion se descarte. **La grabacion se pierde siempre** al: cambiar de
-   tarjeta/pregunta (`nextCard`, `showGameQuestion`, `showTonesQuestion`,
-   `showWriteAtPosition`, `showExamMc`/`showExamTone`), o cerrar la tarjeta
-   grande de palabra/caracter (X o tocando afuera) — nunca persiste entre
-   palabras ni entre sesiones, a pedido explicito del usuario. Implementado
-   como una factory `createRecorder(rootId)` (una instancia por seccion,
-   cada una con su propio boton + `<audio>` de reproduccion) que expone
-   `.reset()`; elige el primer `mimeType` soportado entre `audio/mp4`,
+   sistema. Elige el primer `mimeType` soportado entre `audio/mp4`,
    `audio/webm;codecs=opus`, `audio/webm` y `audio/ogg` via
    `MediaRecorder.isTypeSupported` (Safari solo soporta mp4, Chrome/Edge
    soportan webm — de ahi la lista de candidatos en ese orden). Si el
    navegador no tiene `getUserMedia`/`MediaRecorder`, o el usuario niega el
    permiso del microfono, se muestra un aviso (`showMicToast`, mismo
-   componente visual que el aviso de voz no disponible, ahora bajo la clase
+   componente visual que el aviso de voz no disponible, bajo la clase
    compartida `.info-toast` en vez de un id fijo) explicando por que y que
    el resto de la guia sigue funcionando igual.
+   Con potencialmente cientos de estos botones en la pagina (uno por cada
+   una de las 256 palabras del Glosario + otro tanto en las tarjetas de
+   vocabulario), el mecanismo es **completamente delegado** en vez de
+   inicializar una instancia por boton: un solo listener de `click` en
+   `document` para `.record-btn`, que lee/crea el estado
+   (stream/mediaRecorder/blob url) directo en el elemento `.recorder` mas
+   cercano (`el._recState`) — así cientos de tarjetas no cuestan cientos de
+   listeners individuales. Solo puede haber **una grabacion activa/guardada
+   a la vez en toda la pagina**: empezar una nueva (`startRecorderRecording`)
+   descarta automaticamente cualquier otra que estuviera grabada o
+   grabandose (`activeRecorderEl`), para no dejar microfonos "olvidados"
+   abiertos en tarjetas que ya no se estan mirando.
+   **Se pierde siempre** (`resetRecorder(el)`) al: cambiar de tarjeta/
+   pregunta en cualquier modo de practica (`nextCard`, `showGameQuestion`,
+   `showTonesQuestion`, `showWriteAtPosition`, `showExamMc`/`showExamTone`),
+   cerrar la tarjeta grande de palabra/caracter (X o tocando afuera), o —
+   caso nuevo al agregarlo al Glosario — **cada vez que se re-renderiza la
+   lista completa** (cada tecla en el buscador del Glosario llama
+   `renderGlossary()`, que reemplaza el `innerHTML` entero): antes de
+   pisar el HTML viejo se llama `resetAllRecordersIn(glossaryList)`, que
+   recorre las filas viejas y para cualquier microfono que hubiera quedado
+   abierto — el navegador NO cierra un `MediaStream` solo porque su nodo
+   del DOM desaparecio con `innerHTML=""`, hay que pararlo a mano
+   (`track.stop()`) o el icono de microfono del navegador se queda
+   prendido sin que haya ninguna UI visible para apagarlo.
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
    solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin
