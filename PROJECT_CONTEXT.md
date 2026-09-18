@@ -88,6 +88,26 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
    y ahi muestra un resumen con "🔁 Repasar de nuevo". Sin boton "siguiente"
    pasivo: a pedido del usuario, la logica es autoevaluarse hasta dominar
    todas las tarjetas del filtro activo, no simplemente hojearlas.
+   **Tarjeta grande por palabra/caracter (a pedido del usuario)**: cada chip
+   del desglose de caracteres (`renderCharBreakdown`, tanto en Tarjetas como
+   en el feedback de Adivina) es clickeable — abre un modal (`#wordDetailModal`)
+   con los mismos campos que la tarjeta de repaso (hanzi grande, pinyin,
+   ingles, boton de escuchar) para esa palabra/caracter suelto, mas su propio
+   detalle: si es un caracter individual, su desglose de radical/componentes
+   (`CHAR_RADICALS`, reutilizando `renderRadicalBreakdown` — la misma funcion
+   que ya usaba Practicar escritura, extraida para no duplicarla); si es una
+   combinacion de `WORD_GROUPS` (2+ caracteres), su propio desglose recursivo
+   (los chips de ADENTRO del modal tambien son clickeables, permite "bajar"
+   un nivel mas). Siempre muestra "Aparece en: <palabra que lo mostro>" como
+   contexto/ejemplo de uso real (no se inventa ninguna oracion de ejemplo —
+   el contexto es la palabra real de donde salio el chip). Es **puramente
+   informativo**: no cuenta como "la sabia"/"no la sabia", no toca
+   `fcQueue` ni `missedIndices` ni ningun puntaje — se cierra (X o tocando
+   afuera) y se sigue exactamente donde se estaba en la tarjeta original.
+   Los clicks se escuchan en fase de **captura** en `document` para poder
+   frenar la propagacion antes de que llegue al listener de "voltear" de
+   `#flashcard` (los chips viven dentro de la cara de atras de la tarjeta,
+   que es un hijo de `#flashcard`).
 2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
 3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
    solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin

@@ -624,6 +624,64 @@
     background:none;border:none;
   }
 
+  /* Tarjeta grande de una palabra/caracter suelto, abierta al tocar un chip
+     de desglose. Reutiliza el mismo overlay que el lightbox de imagenes,
+     pero con una tarjeta de contenido en vez de una imagen. */
+  .word-modal{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:200;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .word-modal.active{display:flex;}
+  .word-modal-card{
+    position:relative;
+    background:var(--card-bg);
+    border:2px solid var(--amarillo-osc);
+    border-radius:20px;
+    padding:28px 22px 22px;
+    max-width:420px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .word-modal-card .close-x{
+    position:absolute;top:8px;right:12px;
+    color:var(--gris);font-size:1.6rem;cursor:pointer;
+    background:none;border:none;line-height:1;
+  }
+  .word-modal-card .front-hz{font-size:clamp(2rem, 8vw, 2.6rem);font-weight:700;}
+  .word-modal-card .back-info .py{color:var(--azul);font-size:1.15rem;font-weight:700;margin:6px 0 4px;}
+  .word-modal-card .back-info .en{font-size:1rem;color:var(--gris);}
+  .word-modal-card .speak-btn{margin-top:12px;}
+  .word-detail-context{
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px dashed var(--borde);
+    font-size:.8rem;
+    color:var(--gris);
+  }
+  .word-detail-context b{color:var(--negro);}
+  .word-detail-context i{color:var(--azul);font-style:normal;font-weight:600;}
+
+  /* Chips de desglose clickeables (dentro de char-breakdown): dan la pista
+     visual de que se puede tocar para ver esa palabra/caracter en grande. */
+  .chip-clickable{
+    cursor:pointer;
+    border:none;
+    font:inherit;
+    transition:.12s;
+  }
+  .chip-clickable:hover, .chip-clickable:active{
+    filter:brightness(0.95);
+    box-shadow:0 0 0 2px rgba(0,0,0,.08) inset;
+  }
+
   footer{
     text-align:center;
     font-size:.72rem;
