@@ -45,7 +45,8 @@
     align-items:center;
     gap:8px;
     flex-wrap:nowrap;
-    white-space:nowrap;
+    min-width:0;
+    flex:1 1 auto;
   }
   header h1 .badge{
     background:#222;
@@ -56,7 +57,14 @@
     font-size:.85rem;
     letter-spacing:.5px;
   }
-  header h1 .h1-text{font-size:.92rem;font-weight:600;}
+  header h1 .h1-text{
+    font-size:.92rem;
+    font-weight:600;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
+  }
   .menu-toggle-btn{
     border:none;
     background:#222;
@@ -69,6 +77,84 @@
     flex-shrink:0;
   }
   .menu-toggle-btn:hover{background:#000;}
+
+  /* Selector de leccion: pantalla inicial antes de entrar a ninguna
+     leccion, y a la que se vuelve con "Cambiar de leccion". */
+  .lesson-picker{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+    background:linear-gradient(135deg,var(--amarillo),var(--amarillo-osc));
+  }
+  .lesson-picker-inner{
+    max-width:640px;
+    width:100%;
+    background:#fff;
+    border-radius:20px;
+    padding:28px 24px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    text-align:center;
+  }
+  .lesson-picker-inner h1{
+    margin:0 0 8px;
+    font-size:1.4rem;
+  }
+  .lesson-picker-inner > p{
+    color:var(--gris);
+    font-size:.9rem;
+    margin:0 0 20px;
+  }
+  .lesson-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:14px;
+  }
+  .lesson-card{
+    border:2px solid var(--borde);
+    background:#fff;
+    border-radius:16px;
+    padding:20px 16px;
+    cursor:pointer;
+    text-align:center;
+    transition:.15s;
+    font-family:inherit;
+  }
+  .lesson-card:hover{
+    border-color:var(--amarillo-osc);
+    box-shadow:0 4px 14px rgba(0,0,0,.1);
+    transform:translateY(-2px);
+  }
+  .lesson-card-icon{font-size:2.4rem;margin-bottom:8px;}
+  .lesson-card-title{font-weight:700;font-size:1.05rem;margin-bottom:6px;color:var(--negro);}
+  .lesson-card-sub{font-size:.8rem;color:var(--gris);line-height:1.4;}
+
+  .lesson-badge-row{margin-top:4px;min-height:1px;}
+  #lessonTitleBadge:not(:empty){
+    display:inline-block;
+    background:#222;
+    color:var(--amarillo);
+    font-size:.72rem;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:12px;
+  }
+
+  .change-lesson-btn{
+    display:block;
+    width:100%;
+    border:none;
+    background:var(--gris-claro);
+    color:var(--negro);
+    font-weight:600;
+    padding:8px 12px;
+    border-radius:14px;
+    font-size:.8rem;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .change-lesson-btn:hover{background:#e6e6e6;}
 
   /* Menu panel: collapsed by default on every screen size, toggled by
      #menuToggleBtn. On mobile it opens inline (normal doc flow); on
@@ -992,38 +1078,6 @@
   }
   .flashcard .back-info .char-breakdown{
     max-width:320px;
-  }
-
-  .trad-badge{
-    display:inline-block;
-    font-size:.62rem;
-    font-weight:700;
-    background:#fdeceb;
-    color:var(--rojo);
-    border:1px solid #f3b8b5;
-    border-radius:6px;
-    padding:1px 4px;
-    margin-left:5px;
-    vertical-align:middle;
-    line-height:1.4;
-  }
-  .script-switch{
-    background:#fff8e1;
-    border:1px solid var(--amarillo-osc);
-    border-radius:12px;
-    padding:8px 12px;
-  }
-  .script-toggle{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:.78rem;
-    color:#5b4600;
-    cursor:pointer;
-  }
-  .script-toggle input{
-    width:16px;height:16px;
-    flex-shrink:0;
   }
 
   .cb-label-group{

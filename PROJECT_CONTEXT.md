@@ -1,18 +1,98 @@
-# Guía Interactiva Meituan/JD — Contexto del proyecto
+# Guía Interactiva de Chino Mandarín — Contexto del proyecto
 
 ## Qué es esto
 
-Guía interactiva HTML (offline, un solo archivo) para que Ramone aprenda mandarín
-usando vocabulario **verificado directamente de capturas de pantalla reales** de
-dos apps chinas: **Meituan** (美团, mainland) y **京东/JD** — específicamente su
-canal HK超市 (Hong Kong, escritura tradicional). Uso: clase de chino con un
-profesor, navegando las apps reales.
+Sistema interactivo HTML (offline, un solo archivo) para que Ramone aprenda
+**chino mandarín simplificado — nunca otros dialectos ni escritura tradicional**
+usando vocabulario **verificado**, organizado en **lecciones independientes**
+(ver "Sistema de lecciones" mas abajo). Uso: clase de chino con un profesor.
 
 Principio rector de todo el proyecto (instrucción explícita del usuario desde el
 día 1): **"no asumas nada, investiga"**. Nada de vocabulario se inventó — todo
-viene de OCR/lectura directa de capturas, o de fuentes verificadas por herramienta
-(CC-CEDICT, no memoria del modelo) cuando se trata de significados de caracteres,
-agrupaciones de palabras o tonos.
+viene de OCR/lectura directa de capturas, de una lista que el usuario ya trae
+verificada (hanzi+pinyin+significado), o de fuentes verificadas por herramienta
+(CC-CEDICT, no memoria del modelo) cuando hace falta derivar significados de
+caracteres, agrupaciones de palabras o tonos.
+
+## Sistema de lecciones (arquitectura multi-leccion)
+
+A pedido del usuario ("necesito convertir esto en un sistema para aprender chino
+mandarin... vas a hacer lo mismo que hemos hecho en esta leccion pero con las
+palabras nuevas... solo se debe estudiar una leccion a la vez"), lo que antes
+era una sola guia (Meituan/JD) paso a ser la **primera leccion** de un sistema
+que puede tener varias. Decisiones tomadas con el usuario (`AskUserQuestion`):
+
+- Las lecciones NUEVAS siguen la MISMA estructura que "Aplicaciones Chinas"
+  (Introduccion, pestañas de contenido explicado, Glosario, Practica) aunque no
+  tengan capturas de pantalla reales (se explican solo con texto/tablas).
+- El vocabulario de cada leccion nueva lo manda el usuario ya armado como
+  **hanzi + pinyin + significado** (no hace falta derivarlo de CC-CEDICT, aunque
+  conviene auditarlo igual con `tools/audit/audit_vocab.py` antes de darlo por
+  bueno, siguiendo la metodologia de mas abajo).
+
+**Como esta armado**:
+- Cada leccion es un objeto en el registro `LESSONS` (`src/app.js`): trae su
+  propio `vocab` (mismo formato que antes: `{data:{seccion:[...]}, titles:{...}}`)
+  y su propio `levelMap` (grupos de secciones en niveles 1/2/3/0). Los nombres de
+  seccion deben ser unicos DENTRO de esa leccion, pero pueden repetirse entre
+  lecciones distintas sin problema (son namespaces separados).
+- `VOCAB`, `LEVEL_MAP`, `ALL_TERMS` pasaron de `const` a variables (`let`) que
+  `loadLesson(lessonId)` reasigna al elegir/cambiar de leccion —
+  `buildAllTerms()` reconstruye `ALL_TERMS` desde cero cada vez. **Nunca se
+  mezclan palabras de dos lecciones en la misma ronda de practica** porque
+  `ALL_TERMS` siempre es el de UNA sola leccion a la vez.
+- `CHAR_DICT`, `CHAR_OVERRIDES`, `WORD_GROUPS`, `TONE_GAME_DATA`,
+  `HANZI_STROKE_DATA`, `CHAR_RADICALS` siguen siendo diccionarios GLOBALES
+  (compartidos entre todas las lecciones), indexados por caracter o por la
+  palabra exacta — no hay riesgo de choque entre lecciones porque la clave es
+  el texto chino en si. Si una leccion nueva usa una palabra/caracter que ya
+  esta en estos diccionarios (de otra leccion), se reaprovecha gratis; si trae
+  caracteres nuevos, hay que agregarlos ahi (mismo proceso que ya se uso para
+  construir el set original — ver "Metodologia de verificacion" mas abajo).
+- `loadLesson(lessonId)` hace todo el trabajo de "entrar" a una leccion: fija
+  `VOCAB`/`LEVEL_MAP`, resetea TODO el estado de filtros/practica a los valores
+  por defecto (nivel 1, modo Tarjetas, sin seccion especifica, sin "repasar
+  falladas" pendiente de la leccion anterior — `missedIndices.clear()`),
+  reconstruye `ALL_TERMS`, renderiza las tarjetas de vocabulario y el glosario
+  de ESA leccion, y muestra/oculta las pestañas segun `data-lesson` (ver abajo).
+- En el HTML, cada pestaña (`#tabNav button`) y cada panel (`.panel`) tiene un
+  atributo `data-lesson="<id>"`. `loadLesson()` oculta los botones de pestaña
+  de OTRAS lecciones (asi no se puede navegar a contenido de una leccion que no
+  esta activa) y activa la primera pestaña de la leccion elegida.
+- **Pantalla de seleccion** (`#lessonPicker`, primera pantalla que se ve al
+  abrir el archivo): una tarjeta por leccion (`.lesson-card`, dentro de
+  `#lessonGrid`). Tocar una tarjeta llama a `loadLesson(id)` y revela el resto
+  de la app (`#appShell`, oculto por defecto con `display:none` hasta elegir).
+  Un boton **"🔄 Cambiar de leccion"** (arriba del todo en el menu ☰) vuelve a
+  mostrar esta pantalla sin perder el progreso de las otras — solo hay que
+  volver a elegir una leccion (la misma u otra) para seguir, y el estado de esa
+  leccion se resetea a los valores por defecto al re-entrar (no se guarda un
+  "donde me quede" entre visitas — es intencional, cada sesion de estudio
+  arranca limpia).
+- El header ya NO es especifico de una leccion ("Guia Interactiva de Chino
+  Mandarin" generico + una insignia con el nombre de la leccion activa,
+  `#lessonTitleBadge`, actualizada por `loadLesson()`) — antes decia
+  "美团 / 京东 Guia Interactiva" a fuego.
+
+**Para agregar una leccion nueva** (proceso a repetir cada vez que el usuario
+mande un vocabulario):
+1. Armar su `VOCAB_<id>` + `LEVELMAP_<id>` (mismo formato que
+   `VOCAB_APLICACIONES_CHINAS`/`LEVELMAP_APLICACIONES_CHINAS` en `src/app.js`) a
+   partir de la lista hanzi+pinyin+significado que mande el usuario — auditar
+   contra CC-CEDICT antes de darlo por bueno.
+2. Agregar los caracteres nuevos (si los hay) a `CHAR_DICT`/`CHAR_RADICALS`
+   (`tools/audit/build_char_radicals.py`) y a `HANZI_STROKE_DATA` en
+   `src/hanzi-data.js` (paquete `hanzi-writer-data`) para que Practicar
+   escritura los cubra.
+3. Agregar la entrada en el registro `LESSONS` (`src/app.js`).
+4. Escribir las pestañas de contenido de esa leccion en `src/index.html`
+   (Introduccion + secciones explicadas, todas con `data-lesson="<id>"` en la
+   pestaña y en el `<section class="panel">`), siguiendo el mismo patron que
+   "Aplicaciones Chinas" pero sin capturas de pantalla (texto/tablas en su
+   lugar, ya que estas lecciones no tienen fotos reales de una app).
+5. Agregar una tarjeta `.lesson-card` en `#lessonGrid`.
+6. Probar con Playwright: la leccion nueva carga sola, no mezcla palabras con
+   otras lecciones, y "Cambiar de leccion" + volver a elegir resetea bien.
 
 ## Estado actual
 
@@ -96,8 +176,14 @@ abajo antes de tocar esos archivos.
 
 ## Qué hace la guía (features)
 
-Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de iconos) ·
-外卖 Delivery · 京东 JD/HK超市 · 🔗 En común · Glosario completo · Práctica.
+Lo que sigue describe la lección **"Aplicaciones Chinas"** en particular (la
+única que existe hoy); el mecanismo de práctica (los 7 modos) es genérico y lo
+va a reusar cualquier lección nueva que se agregue (ver "Sistema de
+lecciones" al principio de este documento).
+
+Pestañas de esta lección: Introducción · Pantalla Principal (Meituan 首页, 3
+páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosario completo
+· Práctica.
 
 **Práctica** tiene 7 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
@@ -298,18 +384,23 @@ Pestañas: Introducción · Pantalla Principal (Meituan 首页, 3 páginas de ic
     "Repasar falladas" al cambiar de juego, ver "Filtros globales" mas
     abajo) — patron que se repitio varias veces en esta sesion.
 
-Filtros globales, aplican a los 7 modos por igual: nivel (① comunes / ②
-pantallas principales / ③ submenús / 🔀 todo), sección específica (dropdown
-con las 23 secciones reales — si se elige una, anula el nivel; elegir un
-nivel la resetea a "todas"), **"Solo chino simplificado"** (excluye 36
-términos tradicionales que vienen del canal HK超市 de JD, marcados con badge
-繁), y **"📌 Repasar falladas"** (cola de palabras falladas, se vacía cuando
-las aciertas — y tambien se reinicia por completo cada vez que se cambia
-de modo/juego en `#modeSwitch`, a pedido del usuario: es una cuenta por
-sesión de juego, no algo que se arrastre de Adivina a Tarjetas, etc.). El
-modo Examen respeta nivel/sección/"solo simplificado" igual que los demás,
-pero no lee ni escribe la cola de "Repasar falladas" — su propio puntaje
-final cumple ese rol para esa sección en particular.
+Filtros globales, aplican a los 7 modos por igual (dentro de la lección
+activa — nunca mezclan secciones de dos lecciones distintas, ver "Sistema de
+lecciones" al principio de este documento): nivel (① comunes / ② pantallas
+principales / ③ submenús / 🔀 todo), sección específica (dropdown con las
+secciones reales de la lección activa — si se elige una, anula el nivel;
+elegir un nivel la resetea a "todas"), y **"📌 Repasar falladas"** (cola de
+palabras falladas, se vacía cuando las aciertas — y tambien se reinicia por
+completo cada vez que se cambia de modo/juego en `#modeSwitch`, a pedido del
+usuario: es una cuenta por sesión de juego, no algo que se arrastre de
+Adivina a Tarjetas, etc. — y por supuesto también se reinicia al cambiar de
+lección). El modo Examen respeta nivel/sección igual que los demás, pero no
+lee ni escribe la cola de "Repasar falladas" — su propio puntaje final
+cumple ese rol para esa sección en particular.
+(**Nota**: el filtro "Solo chino simplificado" que existía antes se eliminó
+por completo junto con todo el contenido en chino tradicional — ver "Limpieza
+de datos" más abajo. Ya no hace falta: toda la guía es 100% mandarín
+simplificado.)
 
 Cada palabra de 2-8 caracteres muestra, al voltear/responder:
 - Desglose de significado por carácter individual (`CHAR_DICT`, con excepciones
@@ -567,6 +658,62 @@ selector de voz si el sistema tiene más de una voz china instalada.
     nuevo aunque sea "la misma" guia — guardar el archivo siempre con el
     mismo nombre/ubicacion deberia ayudar a que el permiso persista entre
     sesiones tambien.
+15. **Header roto (~31px de scroll horizontal) en pantallas de 320px de
+    ancho, al convertir la guia en sistema de lecciones**. Causa: el titulo
+    del header paso de "美团/京东 Guia Interactiva" (corto, con 2 insignias) a
+    "Guia Interactiva de Chino Mandarin" (mas largo, generico), pero seguia
+    usando `white-space:nowrap` sin poder achicarse — el boton ☰ Menu quedaba
+    empujado fuera de la pantalla. Encontrado con la misma auditoria
+    automatizada de Playwright (7 anchos x 7 pestañas x 7 modos + la pantalla
+    de seleccion de leccion). Fix: el `<h1>` ahora puede achicarse dentro del
+    flex del header (`min-width:0; flex:1 1 auto`) y el texto del titulo
+    trunca con "..." si no entra (`text-overflow:ellipsis`) en vez de forzar
+    el ancho de toda la fila — el boton de menu queda siempre visible.
+
+## Limpieza de datos: eliminacion del canal HK超市 (chino tradicional/cantones)
+
+A pedido explicito del usuario ("eliminale todas las palabras y la voz de HK,
+queremos solo chino mandarin simplificado no otros dialectos"), se removio
+POR COMPLETO el contenido del canal "HK超市" (Supermercado de Hong Kong) de
+京东/JD dentro de la leccion "Aplicaciones Chinas":
+
+- Se borraron 4 secciones enteras de `VOCAB` (no solo las palabras marcadas
+  como tradicionales, sino la seccion completa tematica): `jd_toptabs`
+  (pestañas del canal HK超市), `jd_miaosong` (servicio de entrega directa
+  China continental → Hong Kong/Macao, con la frase en cantones "點指北上咁簡單"),
+  `jd_home_hk` (home del canal, "京东香港超市") y `jd_baoyou` (envio gratis a
+  Hong Kong). Total: 71 palabras eliminadas (las 36 marcadas "trad" + 35
+  "neutral" que describian ese mismo canal en escritura simplificada, ej.
+  nombres de puestos fronterizos como 深圳/珠海).
+- Se elimino la entrada suelta "中国香港" (selector de region) de `jd_cart`,
+  que si se quedo (el resto de esa seccion — carrito de compras — es
+  vocabulario generico valido).
+- Se podaron las entradas huerfanas que quedaban en `WORD_GROUPS` (49),
+  `TONE_GAME_DATA` (64) y `CHAR_OVERRIDES` (1) apuntando a esas palabras
+  borradas — quedan solo las claves que corresponden a una palabra que sigue
+  existiendo en `VOCAB`.
+- Se removio el concepto entero de "chino tradicional" del codigo: la
+  funcion `tradBadge()`, el campo `"t"` en cada entrada de `VOCAB`, la
+  variable `simplifiedOnly` y el checkbox "Solo chino simplificado (excluir
+  los 36 terminos...)" — ya no hace falta un filtro para excluir algo que ya
+  no esta. `CHAR_DICT` conserva un par de entradas de caracteres (港/澳) con
+  "Hong Kong"/"Macau" mencionados solo como parte de su significado estandar
+  de diccionario (港 = harbor/puerto, 澳 = bahia) — no son "voz de HK", son
+  caracteres normales del mandarin que podrian aparecer en vocabulario futuro
+  (ej. 香港 como nombre de ciudad es perfectamente valido en mandarin
+  estandar; lo que se elimino fue el contenido en **escritura tradicional o
+  cantones**, no la mera mencion de la ciudad).
+- En `src/index.html`, la pestaña 京东 JD se reescribio: el titulo/parrafo de
+  introduccion ya no menciona "Canal HK超市"; se borraron los 4 bloques de
+  captura+vocabulario correspondientes (con sus imagenes `data:` embebidas);
+  se borro una nota aclaratoria que hablaba de una captura con cupones
+  "港澳新人礼" (esa captura especifica ya no se usa); y el contador
+  "Verificado en N capturas" bajo de 8 a 4 (las capturas fuente unicas que
+  quedan: carrito, perfil/nav-inferior compartida, mensajes, categorias —
+  varias secciones comparten la misma foto recortada distinto). El tab del
+  menu paso de "京东 JD / HK超市" a solo "京东 JD".
+- Resultado: la leccion "Aplicaciones Chinas" paso de 256 a 185 terminos, de
+  23 a 19 secciones, y de 3.65MB a 3.18MB (menos capturas embebidas).
 
 ## Auditoria QA/responsive + compatibilidad iOS (esta sesion)
 
