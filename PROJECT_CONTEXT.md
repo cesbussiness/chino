@@ -54,11 +54,29 @@ que puede tener varias. Decisiones tomadas con el usuario (`AskUserQuestion`):
   por defecto (nivel 1, modo Tarjetas, sin seccion especifica, sin "repasar
   falladas" pendiente de la leccion anterior — `missedIndices.clear()`),
   reconstruye `ALL_TERMS`, renderiza las tarjetas de vocabulario y el glosario
-  de ESA leccion, y muestra/oculta las pestañas segun `data-lesson` (ver abajo).
-- En el HTML, cada pestaña (`#tabNav button`) y cada panel (`.panel`) tiene un
-  atributo `data-lesson="<id>"`. `loadLesson()` oculta los botones de pestaña
-  de OTRAS lecciones (asi no se puede navegar a contenido de una leccion que no
-  esta activa) y activa la primera pestaña de la leccion elegida.
+  de ESA leccion, regenera el `#levelSwitch` (ver abajo) y muestra/oculta las
+  pestañas segun `data-lesson` (ver abajo).
+- En el HTML, cada pestaña DE CONTENIDO (`#tabNav button`) y cada panel
+  `.panel` de contenido tiene un atributo `data-lesson="<id>"`. `loadLesson()`
+  oculta los botones de pestaña de OTRAS lecciones (asi no se puede navegar a
+  contenido de una leccion que no esta activa) y activa la primera pestaña de
+  la leccion elegida. **Glosario y Practica son la excepcion**: son pestañas
+  COMPARTIDAS por todas las lecciones (no llevan `data-lesson`, nunca se
+  ocultan) porque muestran lo que sea que este cargado en `VOCAB`/`ALL_TERMS`
+  en ese momento — un bug real de la primera version de este sistema fue
+  etiquetarlas como si fueran de "aplicaciones_chinas" (se hubieran ocultado al
+  entrar a cualquier otra leccion); quedo corregido junto con el selector de
+  `loadLesson()` que limpia `.active` de TODOS los `.panel` (antes solo limpiaba
+  `.panel[data-lesson]`, lo que podia dejar un panel viejo marcado activo).
+- El switch de nivel (`#levelSwitch`, dentro de Practica) tambien es dinamico:
+  como la cantidad de niveles y sus nombres varian por leccion (p.ej.
+  "Aplicaciones Chinas" tiene 3 niveles tematicos + "Todo mezclado", una
+  leccion con una sola seccion solo tiene sentido con 1 nivel + "Todo
+  mezclado"), `loadLesson()` reconstruye el `innerHTML` de `#levelSwitch` leyendo
+  `lesson.levelLabels` (mapa `nivel -> etiqueta`, mismo shape que `levelMap`
+  pero con el texto del boton en vez de las secciones). El listener de click
+  esta delegado en el contenedor `#levelSwitch` (no en cada boton), asi que
+  sigue funcionando sin volver a engancharlo despues de regenerar los botones.
 - **Pantalla de seleccion** (`#lessonPicker`, primera pantalla que se ve al
   abrir el archivo): una tarjeta por leccion (`.lesson-card`, dentro de
   `#lessonGrid`). Tocar una tarjeta llama a `loadLesson(id)` y revela el resto
@@ -75,24 +93,217 @@ que puede tener varias. Decisiones tomadas con el usuario (`AskUserQuestion`):
   "美团 / 京东 Guia Interactiva" a fuego.
 
 **Para agregar una leccion nueva** (proceso a repetir cada vez que el usuario
-mande un vocabulario):
-1. Armar su `VOCAB_<id>` + `LEVELMAP_<id>` (mismo formato que
+mande un vocabulario — refinado despues de hacerlo por primera vez de verdad
+con las Lecciones 1-4, ver seccion dedicada mas abajo):
+1. Si el vocabulario llega en `.docx`: `pandoc` y `soffice --headless
+   --convert-to txt` fallaron en este entorno (ver "Bugs reales..." mas abajo
+   para el error exacto) — la forma que funciono fue `unzip` el `.docx` y
+   parsear `word/document.xml` directo con `xml.etree.ElementTree` (Python),
+   extrayendo el texto de cada `<w:t>` por parrafo.
+2. Armar su `VOCAB_<id>` + `LEVELMAP_<id>` (mismo formato que
    `VOCAB_APLICACIONES_CHINAS`/`LEVELMAP_APLICACIONES_CHINAS` en `src/app.js`) a
-   partir de la lista hanzi+pinyin+significado que mande el usuario — auditar
-   contra CC-CEDICT antes de darlo por bueno.
-2. Agregar los caracteres nuevos (si los hay) a `CHAR_DICT`/`CHAR_RADICALS`
-   (`tools/audit/build_char_radicals.py`) y a `HANZI_STROKE_DATA` en
-   `src/hanzi-data.js` (paquete `hanzi-writer-data`) para que Practicar
-   escritura los cubra.
-3. Agregar la entrada en el registro `LESSONS` (`src/app.js`).
-4. Escribir las pestañas de contenido de esa leccion en `src/index.html`
+   partir de la lista hanzi+pinyin+significado que mande el usuario:
+   - Auditar el pinyin contra CC-CEDICT (`pycccedict`, `from pycccedict.cccedict
+     import CcCedict` — el modulo es `cccedict` sin guion bajo) ANTES de darlo
+     por bueno. Para palabras que no existen como entrada unica en CEDICT,
+     verificar caracter por caracter / por sub-palabras conocidas.
+   - Un tono distinto al de CEDICT no es automaticamente un error: sandhi de
+     一 (yī → yì/yí segun lo que sigue) y tonos completos en vez de neutros
+     para claridad en libros de texto (p.ej. 晚上/谢谢) son convenciones
+     legitimas — usar el pinyin que trae la leccion, no forzar CEDICT.
+   - Si hace falta pinyin silaba-por-silaba con marca de tono a partir del
+     hanzi (para armar `TONE_GAME_DATA`, ver mas abajo), `pypinyin`
+     (`pip install pypinyin`, `pinyin(texto, style=Style.TONE)`) da un
+     resultado por caracter mucho mas confiable que tratar de segmentar a mano
+     el pinyin ya romanizado y pegado (ambiguo: "Liànxí" no dice donde corta).
+3. Agregar los caracteres nuevos (si los hay) a `CHAR_DICT` (**siempre en
+   ingles**, ver "Regla: CHAR_DICT en ingles" mas abajo) y a `CHAR_RADICALS`
+   (`tools/audit/build_char_radicals.py`, que descarga/cachea el diccionario de
+   Make Me a Hanzi) y a `HANZI_STROKE_DATA` en `src/hanzi-data.js` (paquete
+   `hanzi-writer-data`, instalar con `--no-save` porque es solo una fuente de
+   datos puntual, no una dependencia real del build) para que Practicar
+   escritura los cubra. Verificar cobertura al final comparando el set de
+   caracteres de la leccion contra las 3 estructuras (ver script de chequeo en
+   la seccion de Lecciones 1-4).
+4. Revisar conflictos polifonicos entre lecciones: si un caracter que ya esta
+   en `CHAR_DICT` (de otra leccion) se usa en esta leccion con una lectura
+   distinta dentro de una palabra de 2+ caracteres, agregar una entrada en
+   `CHAR_OVERRIDES` (clave = la palabra exacta) en vez de tocar la entrada
+   global — el default global no debe romperse para la leccion original.
+   Truco para encontrarlos: alinear 1:1 cada caracter de la palabra con su
+   silaba de pinyin (solo cuando la cantidad coincide) y comparar el tono
+   pelado contra `CHAR_DICT[ese caracter]`.
+5. Generar candidatos de `WORD_GROUPS` (combinaciones internas de 3+
+   caracteres que tambien significan algo por separado): matching greedy de
+   izquierda a derecha contra un indice CEDICT de `simplified -> definicion`,
+   probando substrings de largo 4 a 2 en cada posicion y quedandose con el mas
+   largo. Revisar a mano los candidatos: descartar los que sean tecnicamente
+   una palabra real de CEDICT pero no reflejen la estructura real de la
+   palabra (ej. "广交会" — abreviatura de 广州交易会 — NO se separa como
+   "广 + 交会", aunque 交会 exista como palabra).
+6. Generar `TONE_GAME_DATA` para cada palabra de 2+ silabas (las de 1 sola
+   silaba se excluyen — el juego de Tonos y el Examen ya ignoran automaticamente
+   cualquier palabra sin entrada aca, no hace falta filtrarlas en otro lado):
+   tomar el pinyin correcto silaba por silaba (con marca de tono), y por cada
+   silaba generar las 4 variantes de tono alternativas (moviendo solo la marca
+   diacritica que ya tiene esa silaba, nunca recalculando de cero donde va la
+   marca), juntar todas las variantes de todas las silabas en un pool, sacar la
+   que coincide con la correcta, y elegir 5 al azar como `distractors`.
+7. Agregar la entrada en el registro `LESSONS` (`src/app.js`), incluyendo
+   `levelLabels` (mapa `nivel -> texto del boton`, mismo shape que `levelMap`)
+   para que el switch de nivel se regenere bien al entrar a esta leccion.
+8. Escribir las pestañas de contenido de esa leccion en `src/index.html`
    (Introduccion + secciones explicadas, todas con `data-lesson="<id>"` en la
-   pestaña y en el `<section class="panel">`), siguiendo el mismo patron que
+   pestaña y en el `<section class="panel">` — Glosario/Practica NO llevan
+   `data-lesson`, son compartidas), siguiendo el mismo patron que
    "Aplicaciones Chinas" pero sin capturas de pantalla (texto/tablas en su
-   lugar, ya que estas lecciones no tienen fotos reales de una app).
-5. Agregar una tarjeta `.lesson-card` en `#lessonGrid`.
-6. Probar con Playwright: la leccion nueva carga sola, no mezcla palabras con
-   otras lecciones, y "Cambiar de leccion" + volver a elegir resetea bien.
+   lugar, ya que estas lecciones no tienen fotos reales de una app). El
+   vocabulario de cada seccion se muestra con un `<div class="grid-cards"
+   data-section="clave_de_seccion"></div>` vacio — `renderLessonGridCards()` lo
+   llena solo.
+9. Agregar una tarjeta `.lesson-card` en `#lessonGrid`.
+10. Probar con Playwright: la leccion nueva carga sola, no mezcla palabras con
+    otras lecciones, cada modo de practica (Tarjetas/Adivina/Emparejar
+    x2/Tonos/Escritura/Examen) funciona con las palabras nuevas, "Cambiar de
+    leccion" + volver a elegir resetea bien, y no hay overflow horizontal en
+    mobile/tablet/desktop en las pestañas nuevas.
+
+## Lecciones 1-4: Fonetica, Numeros, Nacionalidad, Aeropuerto
+
+Primer caso real de "agregar una leccion nueva" siguiendo el proceso de
+arriba (que de hecho se termino de escribir/refinar HACIENDO esto). El
+usuario mando un `.docx` (`Glosario_Mandarin_Lecciones_1-4.docx`) con 4
+listas de vocabulario ya armadas como hanzi + pinyin + significado en
+español, 163 palabras en total:
+
+- **Leccion 1 — Fonetica y saludos** (56 palabras, 1 sola seccion
+  `leccion1_todo`): silabas sueltas para practicar tonos (八, 妈, 飞, 跑, 读,
+  听...) + saludos/presentarse (你好/您好/哈喽/嗨, 再见, 叫/名字, 认识/高兴,
+  请问). No se invento ninguna sub-division — el usuario pidio "una leccion a
+  la vez" y esta leccion en particular no tiene una separacion natural obvia.
+- **Leccion 2 — Numeros** (17 palabras, 1 sola seccion `leccion2_todo`):
+  一/二/三/五/六/七/十 (四/八/九 ya habian aparecido en la Leccion 1 como
+  practica de tonos — se menciona esto en la pestaña de Introduccion de la
+  Leccion 2 a modo de repaso, no es un error ni una duplicacion accidental),
+  的 (posesivo), 手机/号码/多少 (numero de telefono), 多大/岁/了 (edad), 几
+  (cantidad chica), 万/千 (unidades grandes, agrupadas de a 10.000 y no de a
+  1.000 como en español).
+- **Leccion 3 — Nacionalidad** (17 palabras, 1 sola seccion
+  `leccion3_todo`): paises (委内瑞拉/中国/美国/巴西/意大利), 国/国家/哪/哪里,
+  idiomas (语言/西班牙语/英语/汉语/中文/普通话 — ver nota sobre 语/文/话 en la
+  pestaña de Introduccion), 会 (saber hacer algo).
+- **Leccion 4 — En el aeropuerto** (73 palabras, partida en 2 secciones
+  porque el vocabulario sigue una narrativa clara de dos partes consecutivas):
+  `leccion4_llegada` ("Llegada, aduana y taxi", primeras 55 palabras, desde
+  在/机场 hasta 行=Xíng "de acuerdo" que dice el taxista) y `leccion4_salida`
+  ("Salida y embarque", ultimas 18 palabras, desde 机票 hasta 还是).
+
+**Extraccion del .docx**: `pandoc` no estaba instalado y `soffice --headless
+--convert-to txt` fallo repetidamente con "Error: source file could not be
+loaded" (no se identifico la causa raiz — probablemente algo del perfil/sandbox
+de LibreOffice en el entorno de esta sesion). Se resolvio sin ninguna de las
+dos: `unzip` directo del `.docx` + parseo de `word/document.xml` con
+`xml.etree.ElementTree` (Python nativo), extrayendo el texto de cada `<w:t>`
+por parrafo. Reusar esta tecnica si vuelve a pasar.
+
+**Auditoria de pinyin contra CC-CEDICT**: de las 163 palabras, se encontraron
+observaciones que **no son errores** sino convenciones legitimas del material
+del usuario (se mantuvo el pinyin tal cual lo mando, no el de CEDICT a
+rajatabla):
+- 一起 dado como "yìqǐ" (CEDICT: "yī qǐ") — sandhi de tono de 一 antes de otra
+  silaba, asi se pronuncia realmente en habla natural.
+- 晚上 dado como "wǎnshàng" y 谢谢 como "xièxiè" (CEDICT: segunda silaba en tono
+  neutro, "wǎnshang"/"xièxie") — tono completo en la segunda silaba, convencion
+  comun en materiales para principiantes por claridad.
+
+Y un **error real encontrado y corregido**: al construir `CHAR_DICT['兴']`
+automaticamente desde CEDICT se iba a elegir "xīng, to rise" (la lectura mas
+comun del caracter aislado), pero cotejando contra como se usa realmente en
+esta leccion (高兴, gāoxìng) la lectura correcta es **"xìng", con otro
+significado** (interes/animo, no "elevarse"). Se detecto cruzando la lectura
+propuesta contra la silaba que el propio vocabulario ya traia para esa
+palabra ("tecnica de la silaba observada") — reusable para cualquier leccion
+futura: nunca copiar la lectura "mas comun" de un caracter sin primero
+confirmarla contra como aparece usado en el material real que se esta
+agregando.
+
+**CHAR_OVERRIDES agregados** (conflicto real entre esta leccion y
+"Aplicaciones Chinas"): el caracter 行 ya estaba en `CHAR_DICT` como "háng"
+(fila/rubro, correcto para 排行榜 de la leccion original), pero en la Leccion
+4 aparece como "xíng" (de acuerdo/andar) dentro de 行李 y 行李转盘 (equipaje).
+Como palabras de 1 solo caracter no disparan el desglose de caracteres, el
+行 suelto no se ve afectado — pero 行李/行李转盘 (2+ caracteres) si mostrarian
+la lectura global (háng, incorrecta para esas palabras) sin intervencion. Se
+agregaron 2 entradas en `CHAR_OVERRIDES` (una por palabra) para corregirlo sin
+tocar el default global. De paso se agrego tambien una entrada para
+出差 (差 = "chāi" en esta palabra especifica, viaje de negocios).
+
+**WORD_GROUPS**: 13 candidatos generados con matching greedy contra CEDICT, 12
+mergeados (没关系→关系, 怎么样→怎么, 西班牙语→西班牙, 普通话→普通,
+预订单→预订, 展览会→展览, 行李转盘→行李+转盘, 指示牌→指示, 出租车→出租,
+右手边→右手, 微信支付→微信+支付, 登机牌→登机). Se descarto
+"广交会 → 交会" (交会 = "encontrarse/cruzarse" es una palabra real de CEDICT,
+pero 广交会 es una abreviatura de 广州交易会/Feria de Canton — no se arma
+juntando 广+交会, esa lectura confunde mas de lo que ayuda).
+
+**TONE_GAME_DATA**: se genero para las 91 palabras de 2+ silabas (las de 1
+sola silaba quedan sin entrada — el juego de Tonos y el Examen las ignoran
+solos, no hace falta filtrarlas a mano) usando `pypinyin` (`pip install
+pypinyin`, `pinyin(hanzi, style=Style.TONE)`) para obtener el pinyin correcto
+caracter por caracter directo del hanzi (mucho mas confiable que tratar de
+segmentar a mano el pinyin ya romanizado del `.docx`, que viene pegado tipo
+"Liànxí" sin indicar donde corta la silaba). Para las 8 palabras donde el
+`.docx` da tono neutro en una silaba pero `pypinyin` por defecto da tono
+completo (没关系, 早上, 名字, 认识, 行李转盘, 行李, 师傅, 还是), se uso el
+tono neutro del `.docx` (convencion legitima, igual que arriba). Los 5
+distractores de cada palabra se generaron cambiando la marca de tono de UNA
+sola silaba a la vez (a cada uno de los 4 tonos alternativos + neutro,
+respetando la posicion exacta de la vocal que ya tenia la marca en esa
+silaba), juntando todas las variantes posibles de todas las silabas en un
+pool y sacando 5 al azar — mismo patron que ya se usaba en las 153 entradas
+originales (confirmado inspeccionando varias a mano antes de generar las
+nuevas).
+
+**Cobertura verificada** (script rapido en Node, comparando el set de 215
+caracteres distintos de las 4 lecciones contra las 3 estructuras): 0 faltantes
+en `CHAR_DICT` y en `HANZI_STROKE_DATA`; 6 faltantes en `CHAR_RADICALS`
+(一, 八, 飞, 人, 手, 牙) — son caracteres sin descomposicion en el diccionario
+de Make Me a Hanzi (son radicales/componentes basicos en si mismos, sin
+sub-partes), mismo tipo de hueco esperado que ya existia para el set original
+de 456 caracteres.
+
+**Capitalizacion del pinyin en `VOCAB`**: el `.docx` capitaliza la primera
+letra de CADA palabra (convencion de lista), no solo los nombres propios. Se
+normalizo a minuscula salvo para nombres propios reales (paises:
+Wěinèiruìlā/Zhōngguó/Měiguó/Bāxī/Yìdàlì, la parte de pais en Xībānyá yǔ, la
+marca WeChat en Wēixìn zhīfù, y Guǎngjiāohuì como nombre propio de la feria) —
+mismo criterio que ya se usaba en "Aplicaciones Chinas" (Shànghǎi, Měituán
+zhíbō). Los nombres de idiomas (汉语/中文/英语/普通话) se dejaron en minuscula
+por simplicidad (son sustantivos comunes en el contexto de un curso para
+principiantes, aunque diccionarios formales a veces los capitalizan por
+derivar de un nombre propio) — decision de estilo, no afecta la pronunciacion
+ni el aprendizaje.
+
+**Contenido de las pestañas de Introduccion**: escrito desde cero (sin
+capturas de pantalla, a diferencia de "Aplicaciones Chinas") con contenido
+gramatical/cultural real: tabla de los 4 tonos + neutro con 妈/麻/马/骂/吗
+como ejemplo clasico (agrega estilos `.tone-table` nuevos en `style.css`,
+responsive con scroll horizontal si hace falta), diferencia 几ᐧvs多少, el
+agrupamiento chino de numeros grandes de a 10.000, el patron pais+人 para
+nacionalidad, la distincion 语/文/话 para "idioma", la narrativa de negocios
+de la Leccion 4 (出差 a la 广交会) y una nota especifica sobre 行 como ejemplo
+de caracter polifonico (útil pedagogicamente, no solo un dato tecnico).
+
+**Verificado con Playwright** (`chromium` vía el paquete global del entorno,
+`NODE_PATH="$(npm root -g)"` ya que el repo no tiene Playwright como
+dependencia local): las 5 lecciones cargan sin mezclar vocabulario, conteos de
+glosario exactos (56/17/17/73), etiquetas de nivel correctas por leccion,
+los 6 modos de practica funcionan con las palabras nuevas (incluyendo
+Escritura con trazos reales para una muestra de 15 palabras de la Leccion 4, y
+Tonos mostrando opciones reales de `TONE_GAME_DATA`), el desglose de
+caracteres muestra el override correcto para 行李 (xíng, no háng), 0 errores
+de consola/pagina, y 0 overflow horizontal en 375/820/1440px en las pestañas
+nuevas. Se probo tanto el build normal como el `--protect` (ofuscado).
 
 ## Estado actual
 
@@ -424,6 +635,17 @@ selector de voz si el sistema tiene más de una voz china instalada.
   iconos reales de la app.
 - **Significados de caracteres** (`CHAR_DICT.json`): conocimiento de diccionario
   estándar, verificado contra CC-CEDICT vía `pycccedict` en la auditoría final.
+  **Regla importante: `CHAR_DICT` esta SIEMPRE en ingles**, sin importar el
+  idioma de la leccion que agrega el caracter. Es un solo diccionario GLOBAL
+  compartido por todas las lecciones (indexado por caracter, no por leccion) —
+  si se agregaran significados en español para una leccion en español, un
+  caracter que aparece tanto en una leccion en ingles como en una en español
+  mostraria un idioma segun cual leccion lo agrego primero, y el desglose de
+  una misma palabra podria mezclar ingles y español segun que caracteres son
+  "nuevos" de esta leccion vs. cuales ya existian. El campo `.e` de `VOCAB`
+  (lo que se ve en el frente/dorso de la tarjeta) SI puede estar en el idioma
+  que traiga cada leccion (ingles para "Aplicaciones Chinas", español para
+  las Lecciones 1-4) — la regla del ingles es solo para `CHAR_DICT`.
 - **Agrupaciones de palabras** (`WORD_GROUPS.json`): generadas con matching
   greedy contra CC-CEDICT (no jieba solo, porque jieba fallaba en casos como
   "神券商家" → "券商"), con lista de exclusión manual para falsos positivos
