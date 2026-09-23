@@ -305,6 +305,47 @@ caracteres muestra el override correcto para 行李 (xíng, no háng), 0 errores
 de consola/pagina, y 0 overflow horizontal en 375/820/1440px en las pestañas
 nuevas. Se probo tanto el build normal como el `--protect` (ofuscado).
 
+**Correcciones post-entrega, a pedido del usuario** (ejemplo real de por que
+conviene revisar un `.docx` de vocabulario contra lo que un hablante esperaria
+de esa leccion, no solo contra si mismo):
+- El usuario noto que la Leccion 2 "Numeros" no tenia el 8 ni el 9 (estaban
+  solo en la Leccion 1 como practica de tonos, ver arriba) ni el 100 (no
+  estaba en el `.docx` en absoluto). Se agrego 四/八/九 (duplicados desde la
+  Leccion 1 — reusan los mismos datos ya auditados, sin problema porque
+  `VOCAB` es por leccion) y 百 (ya existia en `CHAR_DICT` desde la leccion
+  original, solo hizo falta la entrada de `VOCAB`).
+- El usuario pidio ademas completar los numeros aunque no estuvieran en el
+  archivo original ("agrega los numeros completos asi no esten en el archivo
+  original"). Se agrego 零 (cero, caracter nuevo — unico que necesito el
+  proceso completo: `CHAR_DICT`, `HANZI_STROKE_DATA` via `hanzi-writer-data`,
+  `CHAR_RADICALS` via `build_char_radicals.py`) y las decenas 11-19 y 20-90
+  (十一...十九, 二十...九十 — combinaciones de caracteres YA conocidos, sin
+  datos nuevos que agregar salvo sus entradas en `TONE_GAME_DATA`, generadas
+  con el mismo metodo de siempre). La Leccion 2 paso de 17 a 39 palabras. La
+  pestaña de Introduccion se reescribio para explicar el patron composicional
+  (10+X para 11-19, X+10 para las decenas, decena+unidad para 21-99) en vez
+  de solo listar palabras sueltas.
+- El usuario tambien pidio revisar que "cada tarjeta" siga el patron completo
+  (pinyin, significado, radicales, y significado de palabras que lo
+  confirman). Se encontro que esto **ya era un gap del codigo original**
+  (no algo introducido en esta sesion): `nextCard()` (modo Tarjetas) y el
+  feedback del modo Adivina solo llamaban a `renderCharBreakdown()`, que se
+  salta a proposito las palabras de 1 solo caracter (nada que desglosar en
+  caracteres) — pero nunca caian al `renderRadicalBreakdown()` como respaldo,
+  a diferencia del modal de detalle de palabra (`openWordDetail`) que si tenia
+  esa logica. Resultado: una palabra de 1 caracter (零, 我, 好, cualquiera)
+  volteaba la tarjeta y no mostraba nada extra, ni siquiera sus radicales/
+  componentes. Se creo `renderWordBreakdown(hz, py, en)` (funcion compartida
+  que aplica el mismo criterio que ya usaba el modal: 2+ caracteres →
+  desglose por caracter + `WORD_GROUPS`; 1 caracter → radicales) y se uso en
+  los 3 lugares que antes llamaban a `renderCharBreakdown` directo (Tarjetas,
+  feedback de Adivina, y el modal, que ahora solo llama al helper). Esto
+  mejora TODAS las palabras de 1 caracter de TODAS las lecciones (no solo las
+  nuevas) — antes esas tarjetas no mostraban nada mas que pinyin+significado.
+  Verificado con `renderWordBreakdown()` invocado directo via
+  `page.evaluate()` en Playwright para varias palabras de 1 y 2+ caracteres en
+  distintas lecciones, comparando el HTML generado.
+
 ## Estado actual
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
