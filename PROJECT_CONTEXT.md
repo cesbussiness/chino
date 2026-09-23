@@ -346,6 +346,65 @@ de esa leccion, no solo contra si mismo):
   `page.evaluate()` en Playwright para varias palabras de 1 y 2+ caracteres en
   distintas lecciones, comparando el HTML generado.
 
+**Auditoria completa de las 5 lecciones** (a pedido del usuario: "revisa
+minuciosamente cada leccion y que todas cumplan con el mismo standard"),
+en dos partes:
+
+1. *Integridad de datos* (script que compara cada leccion contra
+   `CHAR_DICT`/`HANZI_STROKE_DATA`/`CHAR_RADICALS`/`TONE_GAME_DATA`): sin
+   huecos reales. Lo unico que aparecio fueron cosas YA conocidas/aceptadas
+   y sin relacion con las lecciones nuevas: (a) unas pocas palabras de 1 solo
+   caracter (一, 八, 人, 飞, 手, 牙) sin desglose de radicales porque el
+   diccionario de Make Me a Hanzi no tiene su descomposicion — mismo tipo de
+   hueco que ya existia para 12 caracteres del set original, no se puede
+   arreglar sin otra fuente de datos; (b) 5 frases largas (7-10 caracteres,
+   banners de la UI como "定位服务未开启") de "Aplicaciones Chinas" sin
+   `TONE_GAME_DATA` — confirmado con `git diff` contra el commit de ANTES de
+   este trabajo que ya faltaban desde siempre, es coherente con que el juego
+   de Tonos sea para palabras de vocabulario, no oraciones completas; y (c)
+   "duplicados" de palabras como 消息/购物车/我的 dentro de "Aplicaciones
+   Chinas" — tambien confirmado sin cambios: son la MISMA palabra apareciendo
+   legitimamente en varias secciones/pantallas de la app real (p.ej. una
+   pestaña de navegacion que se repite en varias capturas), no un error de
+   datos.
+2. *Completitud pedagogica por leccion* (releer cada lista de vocabulario
+   preguntando "¿esto es un conjunto completo para lo que la leccion dice
+   enseñar?", el mismo tipo de chequeo que encontro el hueco de los numeros):
+   encontrados y corregidos dos huecos reales, mismo criterio que numeros
+   (agregar aunque no viniera en el `.docx` original, reusando datos ya
+   auditados cuando existian):
+   - **Leccion 1** enseña saludos pero no tenia "gracias" (谢谢 solo estaba en
+     la Leccion 4), ni "perdon"/"de nada" en ningun lado, dejando 没关系 (no
+     importa) sin su contraparte natural. Se agrego 谢谢 (duplicado desde la
+     Leccion 4, cero datos nuevos) + 对不起 (perdon) + 不客气 (de nada) — estas
+     dos ultimas necesitaron 2 caracteres nuevos (对, 气) con el pipeline
+     completo. Pinyin verificado con `pypinyin`: 不客气 aplica sandhi de 不
+     (bù→bú antes de 客, tono 4) y usa tono completo en 气 en vez del neutro
+     de CEDICT, mismo criterio de "tonos completos para claridad" ya usado en
+     esta leccion. 56 → 59 palabras.
+   - **Leccion 3** se llama "Nacionalidad" y su propio texto de Introduccion
+     ya explicaba el patron pais+人 con 委内瑞拉人/中国人/美国人 como ejemplos
+     — pero NINGUNA palabra de nacionalidad real (solo los nombres de paises)
+     estaba en el Vocabulario para practicar. Se agregaron las 5 (委内瑞拉人,
+     中国人, 美国人, 巴西人, 意大利人), sin caracteres nuevos (todas usan 人,
+     ya existente, mas los caracteres de cada pais que ya estaban). Se
+     agregaron tambien sus `WORD_GROUPS` (cada nacionalidad confirma que el
+     pais dentro tambien es una palabra real, mismo patron que 行李转盘 →
+     行李+转盘) y su `TONE_GAME_DATA`. 17 → 22 palabras.
+   - Se revisaron tambien Leccion 2 (ya completada en el paso anterior) y
+     Leccion 4 (no tiene "conjuntos" enumerables como numeros/nacionalidad —
+     es una narrativa de aeropuerto, no se encontro un hueco analogo).
+   Ambas lecciones actualizaron su pestaña de Introduccion para mencionar el
+   vocabulario nuevo en vez de solo usarlo como ejemplo de texto.
+
+Metodologia para el proximo caso similar: al recibir vocabulario ya armado
+para una leccion, ademas de auditar pinyin contra CEDICT, preguntarse por
+cada tema/categoria que la leccion promete enseñar (numeros, nacionalidades,
+cortesia basica, etc.) si el set de palabras es realmente completo para ESE
+tema — no solo fiel al archivo que mando el usuario. El usuario ya dejo claro
+que prefiere que se complete aunque implique agregar palabras que no estaban
+en el material original.
+
 ## Estado actual
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
