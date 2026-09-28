@@ -1206,6 +1206,63 @@
     25%{transform:translateX(-4px);}
     75%{transform:translateX(4px);}
   }
+  .sentence-answer{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    min-height:56px;
+    border:2px dashed var(--borde);
+    border-radius:12px;
+    padding:10px;
+    margin:0 auto 14px;
+    max-width:640px;
+    justify-content:center;
+    align-items:center;
+  }
+  .sentence-answer:empty::before{
+    content:'Toca las palabras de abajo en el orden correcto';
+    color:#999;
+    font-size:.85rem;
+  }
+  .sentence-tray{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .sentence-tile{
+    border:2px solid var(--borde);
+    background:#fff;
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:clamp(1.05rem, 4vw, 1.3rem);
+    font-weight:700;
+    cursor:pointer;
+    transition:.12s;
+  }
+  .sentence-tile:hover:not(:disabled){
+    border-color:var(--amarillo-osc);
+  }
+  .sentence-answer .sentence-tile{
+    border-color:var(--azul);
+    background:#eaf3ff;
+  }
+  .sentence-tile.correct{
+    border-color:var(--verde);
+    background:#e7f6ec;
+    color:#1a6b34;
+  }
+  .sentence-tile.wrong-flash{
+    border-color:var(--rojo);
+    background:#fdeceb;
+    animation:shake .3s;
+  }
+  .sentence-tile:disabled{
+    cursor:default;
+    opacity:.6;
+  }
   .match-summary{
     text-align:center;
     background:var(--gris-claro);

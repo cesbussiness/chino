@@ -405,6 +405,85 @@ tema — no solo fiel al archivo que mando el usuario. El usuario ya dejo claro
 que prefiere que se complete aunque implique agregar palabras que no estaban
 en el material original.
 
+## Rediseño de Adivina/Tonos (cola hasta dominar) y del Examen (oraciones)
+
+A pedido del usuario, que reporto un bug real ("en la leccion 2 seccion de
+tonos me salen 4 palabras solamente y la seccion tiene 17") y pidio ademas
+revisar como se manejan las respuestas erradas en general y reemplazar la
+autoevaluacion con tarjetas del Examen por algo mejor.
+
+**El bug de Tonos**: el numero que el usuario describio (4 de 17) coincidia
+exactamente con el estado de la Leccion 2 ANTES de las correcciones de esta
+sesion (17 palabras totales, de las cuales solo 手机/号码/多少/多大 tenian 2+
+silabas y por lo tanto entraban al juego de Tonos) — es decir, el usuario
+estaba viendo un archivo viejo, de antes de agregar los numeros completos.
+Con los datos actuales (39 palabras, 21 con 2+ silabas) el numero ya no
+aplica, pero el chequeo goteo a un problema real y mas general:
+
+**Adivina y Tonos usaban una "ronda" de tamaño fijo** (`ROUND_SIZE`/
+`TONES_ROUND_SIZE` = 12), tomada como una MUESTRA ALEATORIA del pool
+filtrado — no todo el pool. Con mas de 12 palabras elegibles (como ahora
+pasa en varias lecciones), una ronda nunca mostraba todas las palabras, y
+una respuesta incorrecta simplemente pasaba a la siguiente pregunta sin
+volver a aparecer en esa ronda — a diferencia de **Tarjetas**, que desde
+siempre funciona con una cola que se vacia: una respuesta "no la se" manda
+la tarjeta al final de la cola y la ronda no termina hasta dominarlas todas.
+**Emparejar** (`createMatchGame`) tambien ya cubre TODO el pool en tandas y
+no deja avanzar sin resolver cada tanda. O sea que el estandar real ya
+existia en 2 de los 6 modos, pero Adivina y Tonos no lo seguian.
+
+**Arreglado**: Adivina y Tonos ahora funcionan igual que Tarjetas/Emparejar
+— `gameQueue`/`tonesQueue` arrancan con el pool COMPLETO barajado
+(`gameTotalCount`/`tonesTotalCount` = tamaño del pool), una respuesta
+correcta saca la palabra de la cola (`gameMasteredCount`/
+`tonesMasteredCount`++), y una incorrecta la manda al FINAL de la cola en
+vez de perderla — la ronda no termina hasta que el contador de dominadas
+alcanza el total. El indicador de progreso paso de "Pregunta N de M" a "N de
+M dominadas" (mismo texto que Tarjetas). Se elimino el concepto de
+"Puntaje" (ya no tiene sentido cuando la ronda siempre termina en 100% por
+diseño) y el resumen final ahora muestra cuantos intentos extra hicieron
+falta en el camino, no un porcentaje de aciertos. **Escritura** se dejo
+como esta a proposito: ya tiene su propio mecanismo apropiado (pista despues
+de 3 errores + tracking de fallos + boton "Repasar falladas"), y forzar una
+cola de reintento ahi seria mas friccion que ayuda para practicar trazos.
+Verificado con Playwright contestando siempre bien (confirma que aparecen
+las N palabras esperadas antes del resumen) y con una respuesta incorrecta
+deliberada (confirma que esa palabra reaparece mas adelante en la misma
+ronda).
+
+**Examen: se saco la autoevaluacion con tarjetas** (el usuario la considero
+poco objetiva — el estudiante se autocalifica con un boton Si/No, nada
+verifica realmente si sabia la palabra) y se reemplazo por un ejercicio
+nuevo: **"Ordena la oracion"**. Cada Leccion 1-4 tiene un banco de 6 oraciones
+cortas (`LESSONS.<id>.sentenceBank`, constantes `SENTENCE_BANK_LECCIONx` en
+`src/app.js`) armadas SOLO con palabras de esa leccion y de las anteriores en
+la secuencia 1→2→3→4 (nunca de una leccion posterior a la que se esta
+rindiendo) — verificado programaticamente antes de cargarlas (script que
+compara cada palabra de cada oracion contra la union del vocabulario
+acumulado hasta esa leccion). "Aplicaciones Chinas" no tiene banco de
+oraciones (su vocabulario es de interfaz de apps, no arma oraciones
+naturales) — su Examen quedo con Significado/Emparejar/Tonos nomas, sin
+autoevaluacion de tarjetas tampoco.
+
+Mecanica del ejercicio: las palabras de la oracion aparecen mezcladas como
+fichas tocables; tocar una ficha la mueve a la fila de respuesta, tocar una
+ficha YA puesta en la respuesta la devuelve a la bandeja (deshacer). El
+boton "Comprobar" solo compara el orden una vez que la bandeja esta vacia.
+Si el orden es incorrecto, **no avanza ni se pierde el intento** — se avisa
+y se puede seguir ajustando (deshacer y reordenar) hasta acertar, recien ahi
+se habilita "Siguiente" — mismo espiritu de "seguir hasta que salga bien"
+que Tarjetas/Adivina/Tonos, pero como rompecabezas en vez de cola. Si nunca
+se supo armarla a la primera, cuenta como una sola respuesta fallada en el
+resumen (no descuenta por cada intento).
+
+Verificado con Playwright en las 4 lecciones con banco de oraciones + en
+"Aplicaciones Chinas" (sin banco): las 6 oraciones de cada leccion se arman
+y verifican correctamente, el flujo de "orden incorrecto → corregir →
+correcto" funciona sin avanzar de mas, el examen completo (con Significado +
+Emparejar + Tonos + oraciones) termina en el resumen sin errores de
+consola, sin overflow horizontal en mobile, y se probo tanto el build normal
+como el `--protect`.
+
 ## Estado actual
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
@@ -576,7 +655,12 @@ páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosari
    el HTML viejo se llama `resetAllRecordersIn(glossaryList)`, que recorre
    las filas viejas y corta cualquier grabacion en curso en ellas (no el
    microfono compartido, que sigue vivo para las filas nuevas).
-2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con puntaje/racha.
+2. **🎮 Juego: Adivina** — 4 opciones de traducción al inglés, con racha. Cubre
+   **todo** el filtro activo en una cola que se vacía (igual que Tarjetas):
+   una respuesta incorrecta manda la palabra al final de la cola en vez de
+   perderla — el resumen "🎉 N/N dominadas" solo aparece cuando todas se
+   contestaron bien al menos una vez (ver "Rediseño de Adivina/Tonos" más
+   abajo para el porqué de este cambio).
 3. **🔗 Emparejar: Significado** — memorama hanzi↔inglés (antes se llamaba
    solo "Juego: Emparejar"; se renombró al agregar la variante de pinyin
    para que ambas queden claras en la barra de modos).
@@ -594,7 +678,9 @@ páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosari
    una ronda rara de 1-2 fichas. El resumen final usa el tamaño real del
    filtro (ej. "14/14"), no la cantidad de fichas mostradas con relleno.
 5. **🎵 Juego: Tonos** — 6 opciones de pinyin con las mismas letras, solo cambian
-   los tonos (para practicar oído tonal).
+   los tonos (para practicar oído tonal). Mismo criterio que Adivina: cubre
+   todo el filtro (solo palabras con `TONE_GAME_DATA`) con cola que se vacía,
+   sin muestra fija ni respuestas incorrectas perdidas.
 6. **✍️ Practicar escritura** — orden de trazos real por carácter (via
    [Hanzi Writer](https://chanind.github.io/hanzi-writer), vendorizado offline
    en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Arma una ronda de 12
@@ -640,18 +726,21 @@ páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosari
    permita avanzar hacia atras sino solamente hacia adelante y al final me
    deje una puntuacion"): combina en una sola secuencia, para el filtro
    activo (nivel/sección + "solo simplificado"), 4 tipos de pregunta en
-   orden fijo — autoevaluación con tarjetas, selección múltiple de
-   significado, una ronda de emparejar (en tandas de 6, igual que el modo
-   Emparejar) y selección múltiple de tono (solo para las palabras que
-   tienen `TONE_GAME_DATA`). Recorre **toda** la sección elegida (no una
-   muestra al azar como Adivina/Tonos), salvo que el filtro combinado
-   supere 24 palabras (ej. "🔀 Todo mezclado"), en cuyo caso se toma una
-   muestra de 24 al azar para que un examen no se vuelva interminable.
-   **100% hacia adelante**: no hay ningún botón "Atrás" en ningún punto del
-   examen — la tarjeta se autocalifica con "✅ La sabía"/"❌ No la sabía"
-   (ambos avanzan), y cada pregunta de opción múltiple/emparejar se bloquea
+   orden fijo — **ordenar una oración** (`sentenceBank` de la lección,
+   ver "Rediseño..." más abajo — no existe para "Aplicaciones Chinas"),
+   selección múltiple de significado, una ronda de emparejar (en tandas de
+   6, igual que el modo Emparejar) y selección múltiple de tono (solo para
+   las palabras que tienen `TONE_GAME_DATA`). Recorre **toda** la sección
+   elegida (no una muestra al azar como Adivina/Tonos), salvo que el filtro
+   combinado supere 24 palabras (ej. "🔀 Todo mezclado"), en cuyo caso se
+   toma una muestra de 24 al azar para que un examen no se vuelva
+   interminable.
+   **100% hacia adelante entre preguntas distintas**: no hay ningún botón
+   "Atrás" para saltar a una pregunta anterior — pero DENTRO de la pregunta
+   de ordenar la oración sí se puede reintentar sin límite hasta acertar
+   (ver más abajo), y cada pregunta de opción múltiple/emparejar se bloquea
    apenas se responde. Al terminar, un resumen muestra el % total y el
-   desglose de aciertos por tipo de pregunta (tarjetas/significado/
+   desglose de aciertos por tipo de pregunta (oración/significado/
    emparejar/tonos, cada fila solo si esa sección tuvo preguntas), con
    "🔁 Repetir examen" para una ronda nueva. No usa la cola global de
    "Repasar falladas" (es una evaluación puntual, no una práctica

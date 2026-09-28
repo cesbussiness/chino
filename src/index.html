@@ -699,9 +699,8 @@
     <!-- Guessing game mode -->
     <div class="game-wrap" id="gameMode" style="display:none;">
       <div class="game-stats">
-        <span>🏆 Puntaje: <b id="gameScore">0</b></span>
         <span>🔥 Racha: <b id="gameStreak">0</b></span>
-        <span id="gameProgress">Pregunta 1</span>
+        <span id="gameProgress">0 de 0 dominadas</span>
       </div>
       <div class="game-question">
         <div id="gameIconWrap"></div>
@@ -737,9 +736,8 @@
     <!-- Tone recognition game -->
     <div class="tones-wrap" id="tonesMode" style="display:none;">
       <div class="game-stats">
-        <span>🏆 Puntaje: <b id="tonesScore">0</b></span>
         <span>🔥 Racha: <b id="tonesStreak">0</b></span>
-        <span id="tonesProgress">Pregunta 1</span>
+        <span id="tonesProgress">0 de 0 dominadas</span>
       </div>
       <div class="game-question">
         <div id="tonesIconWrap"></div>
@@ -803,21 +801,18 @@
         <span id="examPhaseLabel"></span>
       </div>
 
-      <!-- flashcard self-check item -->
-      <div id="examFlashItem" style="display:none;">
-        <div class="flashcard" id="examFlashcard">
-          <div id="examFcIconWrap"></div>
-          <div class="front-hz" id="examFcFront">美团</div>
-          <div class="back-info" id="examFcBack">
-            <div class="py">Měituán</div>
-            <div class="en">Meituan (app name)</div>
-          </div>
-        </div>
-        <p class="game-instruction">Toca la tarjeta para ver la respuesta y evaluate con honestidad:</p>
+      <!-- sentence-ordering item: arma la oracion con palabras de esta
+           leccion y de las anteriores (nunca de una leccion posterior) -->
+      <div id="examSentenceItem" style="display:none;">
+        <p class="game-instruction" id="examSentenceEn">Ordena la oracion:</p>
+        <div class="sentence-answer" id="examSentenceAnswer"></div>
+        <div class="sentence-tray" id="examSentenceTray"></div>
+        <div class="game-feedback" id="examSentenceFeedback"></div>
         <div class="practice-controls">
-          <button class="fc-review-btn" id="examFcNoBtn">❌ No la sabia</button>
-          <button class="fc-advance-btn" id="examFcYesBtn">✅ La sabia</button>
+          <button class="secondary" id="examSentenceResetBtn">↺ Reiniciar</button>
+          <button class="fc-advance-btn" id="examSentenceCheckBtn">Comprobar</button>
         </div>
+        <button id="examSentenceNextBtn" style="display:none;">Siguiente ▶</button>
       </div>
 
       <!-- multiple choice item: shared markup for significado y tono -->

@@ -601,6 +601,10 @@ const VOCAB_LECCION3 = {"data":{"leccion3_todo":[{"h":"委内瑞拉","p":"Wěin�
 const LEVELMAP_LECCION3 = {"0":null,"1":["leccion3_todo"]};
 const VOCAB_LECCION4 = {"data":{"leccion4_llegada":[{"h":"在","p":"zài","e":"En / estar en"},{"h":"机场","p":"jīchǎng","e":"Aeropuerto"},{"h":"出示","p":"chūshì","e":"Mostrar"},{"h":"护照","p":"hùzhào","e":"Pasaporte"},{"h":"签证","p":"qiānzhèng","e":"Visa"},{"h":"计划","p":"jìhuà","e":"Plan / planear"},{"h":"多久","p":"duōjiǔ","e":"Cuánto tiempo"},{"h":"待","p":"dài","e":"Quedarse"},{"h":"这是","p":"zhè shì","e":"Esto es"},{"h":"酒店","p":"jiǔdiàn","e":"Hotel"},{"h":"预订单","p":"yùdìng dān","e":"Reserva"},{"h":"进","p":"jìn","e":"Entrar"},{"h":"来","p":"lái","e":"Venir"},{"h":"参加","p":"cānjiā","e":"Participar"},{"h":"展会","p":"zhǎnhuì","e":"Feria / exposición"},{"h":"做","p":"zuò","e":"Hacer"},{"h":"生意","p":"shēngyì","e":"Negocio"},{"h":"贸易","p":"màoyì","e":"Comercio"},{"h":"展览会","p":"zhǎnlǎnhuì","e":"Exposición"},{"h":"出差","p":"chūchāi","e":"Viaje de negocios"},{"h":"广交会","p":"Guǎngjiāohuì","e":"Feria de Cantón"},{"h":"目的","p":"mùdì","e":"Propósito"},{"h":"旅游","p":"lǚyóu","e":"Viaje turístico / turismo"},{"h":"给","p":"gěi","e":"Dar"},{"h":"两","p":"liǎng","e":"Dos (para contar)"},{"h":"周","p":"zhōu","e":"Semana"},{"h":"住","p":"zhù","e":"Vivir / hospedarse"},{"h":"行李转盘","p":"xíngli zhuànpán","e":"Cinta transportadora de equipaje"},{"h":"行李","p":"xíngli","e":"Equipaje"},{"h":"跟着","p":"gēnzhe","e":"Seguir"},{"h":"指示牌","p":"zhǐshìpái","e":"Señal / letrero"},{"h":"走","p":"zǒu","e":"Caminar / irse"},{"h":"谢谢","p":"xièxiè","e":"Gracias"},{"h":"海关","p":"hǎiguān","e":"Aduana"},{"h":"申报","p":"shēnbào","e":"Declarar"},{"h":"物品","p":"wùpǐn","e":"Artículo / objeto"},{"h":"没","p":"méi","e":"No (negación)"},{"h":"有","p":"yǒu","e":"Tener"},{"h":"绿色","p":"lǜsè","e":"Verde"},{"h":"通道","p":"tōngdào","e":"Canal / pasillo"},{"h":"出租车","p":"chūzūchē","e":"Taxi"},{"h":"出口","p":"chūkǒu","e":"Salida"},{"h":"右手边","p":"yòushǒu biān","e":"Lado derecho"},{"h":"带","p":"dài","e":"Llevar / traer"},{"h":"地址","p":"dìzhǐ","e":"Dirección"},{"h":"大概","p":"dàgài","e":"Aproximadamente"},{"h":"分钟","p":"fēnzhōng","e":"Minutos"},{"h":"刷卡","p":"shuākǎ","e":"Pagar con tarjeta"},{"h":"只","p":"zhǐ","e":"Solo / solamente"},{"h":"收","p":"shōu","e":"Aceptar / recibir"},{"h":"现金","p":"xiànjīn","e":"Efectivo"},{"h":"或者","p":"huòzhě","e":"O"},{"h":"微信支付","p":"Wēixìn zhīfù","e":"WeChat Pay"},{"h":"师傅","p":"shīfu","e":"Maestro / señor (forma de dirigirse a alguien)"},{"h":"行","p":"xíng","e":"Estar bien / andar"}],"leccion4_salida":[{"h":"机票","p":"jīpiào","e":"Boleto de avión"},{"h":"托运","p":"tuōyùn","e":"Facturar (equipaje)"},{"h":"登机牌","p":"dēngjīpái","e":"Tarjeta de embarque"},{"h":"安检","p":"ānjiǎn","e":"Control de seguridad"},{"h":"电脑","p":"diànnǎo","e":"Computadora"},{"h":"液体","p":"yètǐ","e":"Líquido"},{"h":"拿","p":"ná","e":"Tomar / agarrar"},{"h":"出来","p":"chūlái","e":"Salir (hacia afuera)"},{"h":"个","p":"gè","e":"(clasificador general)"},{"h":"星期","p":"xīngqī","e":"Semana"},{"h":"祝","p":"zhù","e":"Desear"},{"h":"旅途","p":"lǚtú","e":"Viaje / trayecto"},{"h":"愉快","p":"yúkuài","e":"Agradable / feliz"},{"h":"欢迎","p":"huānyíng","e":"Bienvenido"},{"h":"登机","p":"dēngjī","e":"Abordar (el avión)"},{"h":"找到","p":"zhǎodào","e":"Encontrar"},{"h":"座位","p":"zuòwèi","e":"Asiento"},{"h":"还是","p":"háishi","e":"O bien / todavía"}]},"titles":{"leccion4_llegada":"Llegada, aduana y taxi","leccion4_salida":"Salida y embarque"}};
 const LEVELMAP_LECCION4 = {"0":null,"1":["leccion4_llegada"],"2":["leccion4_salida"]};
+const SENTENCE_BANK_LECCION1 = [{"tiles":["你","好","吗"],"punct":"？","en":"¿Cómo estás?"},{"tiles":["他","是","老师"],"punct":"。","en":"Él es profesor."},{"tiles":["很","高兴","认识","你"],"punct":"。","en":"Mucho gusto en conocerte."},{"tiles":["你","叫","什么","名字"],"punct":"？","en":"¿Cómo te llamas?"},{"tiles":["我","们","一起","练习"],"punct":"。","en":"Practiquemos juntos."},{"tiles":["请问","您","贵姓"],"punct":"？","en":"Disculpe, ¿cuál es su apellido?"}];
+const SENTENCE_BANK_LECCION2 = [{"tiles":["我","十","八","岁","了"],"punct":"。","en":"Tengo 18 años."},{"tiles":["你","几","岁","了"],"punct":"？","en":"¿Cuántos años tienes?"},{"tiles":["你","的","手机","号码","是","多少"],"punct":"？","en":"¿Cuál es tu número de celular?"},{"tiles":["他","九十","岁","了"],"punct":"。","en":"Él tiene 90 años."},{"tiles":["一","二","三","四","五"],"punct":"。","en":"Uno, dos, tres, cuatro, cinco."},{"tiles":["六","七","八","九","十"],"punct":"。","en":"Seis, siete, ocho, nueve, diez."}];
+const SENTENCE_BANK_LECCION3 = [{"tiles":["我","是","中国人"],"punct":"。","en":"Soy chino/a."},{"tiles":["你","是","哪","国","人"],"punct":"？","en":"¿De qué país eres?"},{"tiles":["我","会","说","汉语"],"punct":"。","en":"Sé hablar chino."},{"tiles":["你","会","说","西班牙语","吗"],"punct":"？","en":"¿Sabes hablar español?"},{"tiles":["他","是","美国人"],"punct":"。","en":"Él es estadounidense."},{"tiles":["我","是","巴西人"],"punct":"。","en":"Soy brasileño/a."}];
+const SENTENCE_BANK_LECCION4 = [{"tiles":["请","出示","护照"],"punct":"。","en":"Por favor muestre su pasaporte."},{"tiles":["这是","我","的","护照"],"punct":"。","en":"Esto es mi pasaporte."},{"tiles":["出租车","在","右手边"],"punct":"。","en":"El taxi está a la derecha."},{"tiles":["机场","在","哪里"],"punct":"？","en":"¿Dónde está el aeropuerto?"},{"tiles":["祝","你","旅途","愉快"],"punct":"！","en":"¡Que tengas un buen viaje!"},{"tiles":["我","没","有","申报","的","物品"],"punct":"。","en":"No tengo artículos que declarar."}];
 
 // ---------------------------------------------------------------
 // Sistema de lecciones: cada leccion es su propio VOCAB+LEVEL_MAP
@@ -629,6 +633,7 @@ const LESSONS = {
     vocab: VOCAB_LECCION1,
     levelMap: LEVELMAP_LECCION1,
     levelLabels: { 1: '① Fonética y saludos', 0: '🔀 Todo mezclado' },
+    sentenceBank: SENTENCE_BANK_LECCION1,
   },
   leccion2: {
     id: 'leccion2',
@@ -636,6 +641,7 @@ const LESSONS = {
     vocab: VOCAB_LECCION2,
     levelMap: LEVELMAP_LECCION2,
     levelLabels: { 1: '① Números', 0: '🔀 Todo mezclado' },
+    sentenceBank: SENTENCE_BANK_LECCION2,
   },
   leccion3: {
     id: 'leccion3',
@@ -643,6 +649,7 @@ const LESSONS = {
     vocab: VOCAB_LECCION3,
     levelMap: LEVELMAP_LECCION3,
     levelLabels: { 1: '① Nacionalidad', 0: '🔀 Todo mezclado' },
+    sentenceBank: SENTENCE_BANK_LECCION3,
   },
   leccion4: {
     id: 'leccion4',
@@ -654,6 +661,7 @@ const LESSONS = {
       2: '② Salida y embarque',
       0: '🔀 Todo mezclado',
     },
+    sentenceBank: SENTENCE_BANK_LECCION4,
   },
 };
 let currentLessonId = null;
@@ -794,24 +802,26 @@ document.getElementById('fcSpeak').addEventListener('click', ()=>{
 });
 
 // ---------------------------------------------------------------
-// Guessing game mode (multiple choice, with score + streak)
+// Guessing game mode (multiple choice). Igual que las tarjetas: la ronda
+// cubre TODO el pool filtrado (no una muestra fija) y una respuesta
+// incorrecta manda esa palabra al final de la cola en vez de perderla —
+// la ronda no termina hasta que todas se contestaron bien al menos una vez.
 // ---------------------------------------------------------------
-const ROUND_SIZE = 12;
 let gamePool = [];
 let gameQueue = [];
-let gameQIndex = 0;
-let gameScore = 0;
+let gameTotalCount = 0;
+let gameMasteredCount = 0;
+let gameWrongAttempts = 0;
 let gameStreak = 0;
 let gameAnswered = false;
 
 function startGameRound(){
   gamePool = getPoolIndices(currentLevel);
-  const size = Math.min(ROUND_SIZE, gamePool.length);
-  gameQueue = shuffle([...gamePool]).slice(0, size);
-  gameQIndex = 0;
-  gameScore = 0;
+  gameQueue = shuffle([...gamePool]);
+  gameTotalCount = gameQueue.length;
+  gameMasteredCount = 0;
+  gameWrongAttempts = 0;
   gameStreak = 0;
-  document.getElementById('gameScore').textContent = '0';
   document.getElementById('gameStreak').textContent = '0';
   document.getElementById('gameSummary').style.display = 'none';
   document.getElementById('gameMode').querySelector('.game-question').style.display = '';
@@ -821,18 +831,19 @@ function startGameRound(){
 }
 
 function showGameQuestion(){
+  if(gameQueue.length === 0){ showGameSummary(); return; }
   resetRecorder(document.getElementById('gameRecorder'));
   gameAnswered = false;
   document.getElementById('gameNextBtn').style.display = 'none';
   document.getElementById('gameFeedback').textContent = '';
   document.getElementById('gameFeedback').className = 'game-feedback';
 
-  const termIdx = gameQueue[gameQIndex];
+  const termIdx = gameQueue[0];
   const term = ALL_TERMS[termIdx];
   document.getElementById('gameHz').innerHTML = term.h;
   document.getElementById('gameHz').setAttribute('data-hz', term.h);
   document.getElementById('gamePy').textContent = term.p;
-  document.getElementById('gameProgress').textContent = `Pregunta ${gameQIndex+1} de ${gameQueue.length}`;
+  document.getElementById('gameProgress').textContent = `${gameMasteredCount} de ${gameTotalCount} dominadas`;
   const iconSrc = getIconB64(term.sectionKey, term.h);
   document.getElementById('gameIconWrap').innerHTML = iconSrc
     ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
@@ -858,36 +869,31 @@ document.getElementById('gameOptions').addEventListener('click', (e)=>{
     if(b.getAttribute('data-correct') === 'true') b.classList.add('correct');
   });
   const feedback = document.getElementById('gameFeedback');
-  const term = ALL_TERMS[gameQueue[gameQIndex]];
+  const term = ALL_TERMS[gameQueue[0]];
   const breakdownHtml = renderWordBreakdown(term.h, term.p, term.e);
   if(isCorrect){
-    gameScore++;
     gameStreak++;
+    gameMasteredCount++;
     feedback.innerHTML = '¡Correcto! 🎉' + breakdownHtml;
     feedback.className = 'game-feedback correct-txt';
     removeMissed(term);
+    gameQueue.shift();
   }else{
     btn.classList.add('incorrect');
     gameStreak = 0;
-    feedback.innerHTML = 'Casi — sigue intentando' + breakdownHtml;
+    gameWrongAttempts++;
+    feedback.innerHTML = 'Casi — va a volver a aparecer mas adelante en esta ronda' + breakdownHtml;
     feedback.className = 'game-feedback incorrect-txt';
     addMissed(term);
+    gameQueue.push(gameQueue.shift());
   }
-  document.getElementById('gameScore').textContent = gameScore;
   document.getElementById('gameStreak').textContent = gameStreak;
   document.getElementById('gameNextBtn').style.display = 'inline-block';
   const hz = document.getElementById('gameHz').getAttribute('data-hz');
   speak(hz);
 });
 
-document.getElementById('gameNextBtn').addEventListener('click', ()=>{
-  gameQIndex++;
-  if(gameQIndex >= gameQueue.length){
-    showGameSummary();
-  }else{
-    showGameQuestion();
-  }
-});
+document.getElementById('gameNextBtn').addEventListener('click', showGameQuestion);
 
 function showGameSummary(){
   document.getElementById('gameMode').querySelector('.game-question').style.display = 'none';
@@ -895,12 +901,13 @@ function showGameSummary(){
   document.getElementById('gameOptions').style.display = 'none';
   document.getElementById('gameNextBtn').style.display = 'none';
   document.getElementById('gameFeedback').textContent = '';
-  const pct = Math.round((gameScore / gameQueue.length) * 100);
   const summary = document.getElementById('gameSummary');
   summary.style.display = 'block';
-  summary.innerHTML = `
-    <div class="big-score">${gameScore} / ${gameQueue.length}</div>
-    <p>${pct}% de aciertos en esta ronda</p>
+  summary.innerHTML = gameTotalCount === 0
+    ? `<p style="color:#999;">No hay palabras en este filtro.</p>`
+    : `
+    <div class="big-score">🎉 ${gameTotalCount} / ${gameTotalCount}</div>
+    <p>¡Dominaste todas las palabras de esta ronda!${gameWrongAttempts > 0 ? ` (con ${gameWrongAttempts} respuesta${gameWrongAttempts===1?'':'s'} para repasar en el camino)` : ' sin ningun error'}</p>
     <button id="gameReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
   `;
   document.getElementById('gameReplayBtn').addEventListener('click', startGameRound);
@@ -1163,12 +1170,14 @@ const matchPyGame = createMatchGame({
 });
 
 // ---------------------------------------------------------------
-// Tone recognition game
+// Tone recognition game. Mismo criterio que Adivina/Tarjetas: cubre TODO
+// el pool filtrado y una respuesta incorrecta reencola la palabra al final
+// en vez de perderla — no termina hasta dominarlas todas.
 // ---------------------------------------------------------------
-const TONES_ROUND_SIZE = 12;
 let tonesQueue = [];
-let tonesQIndex = 0;
-let tonesScore = 0;
+let tonesTotalCount = 0;
+let tonesMasteredCount = 0;
+let tonesWrongAttempts = 0;
 let tonesStreak = 0;
 let tonesAnswered = false;
 
@@ -1203,12 +1212,11 @@ function getTonesPoolIndices(){
 
 function startTonesRound(){
   const pool = getTonesPoolIndices();
-  const size = Math.min(TONES_ROUND_SIZE, pool.length);
-  tonesQueue = shuffle([...pool]).slice(0, size);
-  tonesQIndex = 0;
-  tonesScore = 0;
+  tonesQueue = shuffle([...pool]);
+  tonesTotalCount = tonesQueue.length;
+  tonesMasteredCount = 0;
+  tonesWrongAttempts = 0;
   tonesStreak = 0;
-  document.getElementById('tonesScore').textContent = '0';
   document.getElementById('tonesStreak').textContent = '0';
   document.getElementById('tonesSummary').style.display = 'none';
   document.getElementById('tonesMode').querySelector('.game-question').style.display = '';
@@ -1226,17 +1234,18 @@ function startTonesRound(){
 }
 
 function showTonesQuestion(){
+  if(tonesQueue.length === 0){ showTonesSummary(); return; }
   resetRecorder(document.getElementById('tonesRecorder'));
   tonesAnswered = false;
   document.getElementById('tonesNextBtn').style.display = 'none';
   document.getElementById('tonesFeedback').textContent = '';
   document.getElementById('tonesFeedback').className = 'game-feedback';
 
-  const term = ALL_TERMS[tonesQueue[tonesQIndex]];
+  const term = ALL_TERMS[tonesQueue[0]];
   document.getElementById('tonesHz').innerHTML = term.h;
   document.getElementById('tonesHz').setAttribute('data-hz', term.h);
   document.getElementById('tonesEn').textContent = term.e;
-  document.getElementById('tonesProgress').textContent = `Pregunta ${tonesQIndex+1} de ${tonesQueue.length}`;
+  document.getElementById('tonesProgress').textContent = `${tonesMasteredCount} de ${tonesTotalCount} dominadas`;
   const iconSrc = getIconB64(term.sectionKey, term.h);
   document.getElementById('tonesIconWrap').innerHTML = iconSrc
     ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
@@ -1258,35 +1267,30 @@ document.getElementById('tonesOptions').addEventListener('click', (e)=>{
     b.disabled = true;
     if(b.getAttribute('data-correct') === 'true') b.classList.add('correct');
   });
-  const term = ALL_TERMS[tonesQueue[tonesQIndex]];
+  const term = ALL_TERMS[tonesQueue[0]];
   const feedback = document.getElementById('tonesFeedback');
   if(isCorrect){
-    tonesScore++;
     tonesStreak++;
+    tonesMasteredCount++;
     feedback.textContent = '¡Correcto! 🎉';
     feedback.className = 'game-feedback correct-txt';
     removeMissed(term);
+    tonesQueue.shift();
   }else{
     btn.classList.add('incorrect');
     tonesStreak = 0;
-    feedback.textContent = 'Ese tono no es — mira la opcion correcta en verde';
+    tonesWrongAttempts++;
+    feedback.textContent = 'Ese tono no es — va a volver a aparecer mas adelante en esta ronda';
     feedback.className = 'game-feedback incorrect-txt';
     addMissed(term);
+    tonesQueue.push(tonesQueue.shift());
   }
-  document.getElementById('tonesScore').textContent = tonesScore;
   document.getElementById('tonesStreak').textContent = tonesStreak;
   document.getElementById('tonesNextBtn').style.display = 'inline-block';
   speak(term.h);
 });
 
-document.getElementById('tonesNextBtn').addEventListener('click', ()=>{
-  tonesQIndex++;
-  if(tonesQIndex >= tonesQueue.length){
-    showTonesSummary();
-  }else{
-    showTonesQuestion();
-  }
-});
+document.getElementById('tonesNextBtn').addEventListener('click', showTonesQuestion);
 
 function showTonesSummary(){
   document.getElementById('tonesMode').querySelector('.game-question').style.display = 'none';
@@ -1294,12 +1298,13 @@ function showTonesSummary(){
   document.getElementById('tonesOptions').style.display = 'none';
   document.getElementById('tonesNextBtn').style.display = 'none';
   document.getElementById('tonesFeedback').textContent = '';
-  const pct = Math.round((tonesScore / tonesQueue.length) * 100);
   const summary = document.getElementById('tonesSummary');
   summary.style.display = 'block';
-  summary.innerHTML = `
-    <div class="big-score">${tonesScore} / ${tonesQueue.length}</div>
-    <p>${pct}% de tonos correctos en esta ronda</p>
+  summary.innerHTML = tonesTotalCount === 0
+    ? `<p style="color:#999;">No hay suficientes palabras en esta seccion/filtro.</p>`
+    : `
+    <div class="big-score">🎉 ${tonesTotalCount} / ${tonesTotalCount}</div>
+    <p>¡Dominaste los tonos de esta ronda!${tonesWrongAttempts > 0 ? ` (con ${tonesWrongAttempts} respuesta${tonesWrongAttempts===1?'':'s'} para repasar en el camino)` : ' sin ningun error'}</p>
     <button id="tonesReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
   `;
   document.getElementById('tonesReplayBtn').addEventListener('click', startTonesRound);
@@ -1507,10 +1512,10 @@ const EXAM_MATCH_CHUNK = 6;
 let examItems = [];
 let examPos = 0;
 let examAnswered = false;
-let examScore = { flash:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
+let examScore = { sentence:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
 
 const EXAM_PHASE_LABELS = {
-  flash: '📇 Autoevaluacion',
+  sentence: '📝 Ordena la oración',
   mc: '🎯 Selección múltiple: significado',
   match: '🔗 Emparejar',
   tone: '🎵 Selección múltiple: tono',
@@ -1518,7 +1523,8 @@ const EXAM_PHASE_LABELS = {
 
 function buildExamItems(pool){
   const items = [];
-  shuffle([...pool]).forEach(idx => items.push({type:'flash', termIdx: idx}));
+  const sentenceBank = (LESSONS[currentLessonId] && LESSONS[currentLessonId].sentenceBank) || [];
+  shuffle(sentenceBank.map((s,i)=>i)).forEach(i => items.push({type:'sentence', sentenceIdx: i}));
   shuffle([...pool]).forEach(idx => items.push({type:'mc', termIdx: idx}));
   if(pool.length >= 2){
     const matchPool = shuffle([...pool]);
@@ -1533,7 +1539,7 @@ function buildExamItems(pool){
 }
 
 function setExamItemVisible(type){
-  document.getElementById('examFlashItem').style.display = type === 'flash' ? '' : 'none';
+  document.getElementById('examSentenceItem').style.display = type === 'sentence' ? '' : 'none';
   document.getElementById('examMcItem').style.display = (type === 'mc' || type === 'tone') ? '' : 'none';
   document.getElementById('examMatchItem').style.display = type === 'match' ? '' : 'none';
 }
@@ -1541,7 +1547,7 @@ function setExamItemVisible(type){
 function startExam(){
   let pool = getPoolIndices(currentLevel);
   if(pool.length > EXAM_MAX_POOL) pool = shuffle([...pool]).slice(0, EXAM_MAX_POOL);
-  examScore = { flash:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
+  examScore = { sentence:{correct:0,total:0}, mc:{correct:0,total:0}, match:{correct:0,total:0}, tone:{correct:0,total:0} };
   document.getElementById('examSummary').style.display = 'none';
   if(pool.length === 0){
     examItems = [];
@@ -1562,7 +1568,7 @@ function showExamItem(){
   document.getElementById('examProgress').textContent = `Pregunta ${examPos+1} de ${examItems.length}`;
   document.getElementById('examPhaseLabel').textContent = EXAM_PHASE_LABELS[item.type];
   setExamItemVisible(item.type);
-  if(item.type === 'flash') showExamFlash(item);
+  if(item.type === 'sentence') showExamSentence(item);
   else if(item.type === 'mc') showExamMc(item);
   else if(item.type === 'tone') showExamTone(item);
   else if(item.type === 'match') showExamMatch(item);
@@ -1574,35 +1580,105 @@ function advanceExam(){
   else showExamItem();
 }
 
-// --- flashcard self-check ---
-function showExamFlash(item){
-  const term = ALL_TERMS[item.termIdx];
-  document.getElementById('examFlashcard').classList.remove('flipped');
-  document.getElementById('examFcFront').innerHTML = term.h;
-  document.getElementById('examFcBack').innerHTML = `<div class="py">${term.p}</div><div class="en">${term.e}</div>`;
-  const iconSrc = getIconB64(term.sectionKey, term.h);
-  document.getElementById('examFcIconWrap').innerHTML = iconSrc
-    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
-    : '';
-  speak(term.h);
+// --- sentence ordering: arma la oracion arrastrando/tocando palabras en el
+// orden correcto. Usa solo palabras de esta leccion y de las anteriores en
+// la secuencia (nunca de una leccion posterior a la que se esta examinando)
+// — ver LESSONS[id].sentenceBank, armado y verificado a mano. A diferencia
+// de mc/tone/match, un intento incorrecto NO avanza ni cuenta como fallado
+// de una: se puede seguir corrigiendo el orden (deshacer tocando una palabra
+// ya colocada) hasta acertar, y recien ahi se habilita "Siguiente" — mismo
+// espiritu que tarjetas/Adivina/Tonos, pero como rompecabezas en vez de cola.
+// ---------------------------------------------------------------
+let examSentenceState = null;
+function showExamSentence(item){
+  const sentence = LESSONS[currentLessonId].sentenceBank[item.sentenceIdx];
+  examSentenceState = {
+    sentence,
+    tray: shuffle(sentence.tiles.map((t,i)=>({text:t, tileIdx:i}))),
+    answer: [],
+    solved: false,
+    wrongAttempt: false,
+  };
+  document.getElementById('examSentenceEn').textContent = `Ordena la oracion: "${sentence.en}"`;
+  document.getElementById('examSentenceFeedback').textContent = '';
+  document.getElementById('examSentenceFeedback').className = 'game-feedback';
+  document.getElementById('examSentenceNextBtn').style.display = 'none';
+  document.getElementById('examSentenceCheckBtn').disabled = false;
+  renderExamSentence();
 }
 
-document.getElementById('examFlashcard').addEventListener('click', ()=>{
-  document.getElementById('examFlashcard').classList.toggle('flipped');
+function renderExamSentence(){
+  const s = examSentenceState;
+  document.getElementById('examSentenceAnswer').innerHTML = s.answer.map(t => `
+    <button class="sentence-tile${s.solved ? ' correct' : ''}" data-tile-idx="${t.tileIdx}" data-zone="answer" ${s.solved ? 'disabled' : ''}>${t.text}</button>
+  `).join('');
+  document.getElementById('examSentenceTray').innerHTML = s.tray.map(t => `
+    <button class="sentence-tile" data-tile-idx="${t.tileIdx}" data-zone="tray" ${s.solved ? 'disabled' : ''}>${t.text}</button>
+  `).join('');
+  document.getElementById('examSentenceCheckBtn').disabled = s.tray.length > 0 || s.solved;
+}
+
+document.getElementById('examSentenceAnswer').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.sentence-tile');
+  if(!btn || !examSentenceState || examSentenceState.solved) return;
+  const idx = Number(btn.getAttribute('data-tile-idx'));
+  const s = examSentenceState;
+  const pos = s.answer.findIndex(t=>t.tileIdx===idx);
+  if(pos === -1) return;
+  const [tile] = s.answer.splice(pos, 1);
+  s.tray.push(tile);
+  document.getElementById('examSentenceFeedback').textContent = '';
+  document.getElementById('examSentenceFeedback').className = 'game-feedback';
+  renderExamSentence();
 });
 
-document.getElementById('examFcYesBtn').addEventListener('click', ()=>{
-  if(examItems[examPos].type !== 'flash') return;
-  examScore.flash.total++;
-  examScore.flash.correct++;
-  advanceExam();
+document.getElementById('examSentenceTray').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.sentence-tile');
+  if(!btn || !examSentenceState || examSentenceState.solved) return;
+  const idx = Number(btn.getAttribute('data-tile-idx'));
+  const s = examSentenceState;
+  const pos = s.tray.findIndex(t=>t.tileIdx===idx);
+  if(pos === -1) return;
+  const [tile] = s.tray.splice(pos, 1);
+  s.answer.push(tile);
+  renderExamSentence();
 });
 
-document.getElementById('examFcNoBtn').addEventListener('click', ()=>{
-  if(examItems[examPos].type !== 'flash') return;
-  examScore.flash.total++;
-  advanceExam();
+document.getElementById('examSentenceResetBtn').addEventListener('click', ()=>{
+  if(!examSentenceState || examSentenceState.solved) return;
+  const s = examSentenceState;
+  s.tray = shuffle([...s.tray, ...s.answer]);
+  s.answer = [];
+  renderExamSentence();
 });
+
+document.getElementById('examSentenceCheckBtn').addEventListener('click', ()=>{
+  const s = examSentenceState;
+  if(!s || s.tray.length > 0 || s.solved) return;
+  const isCorrect = s.answer.every((t,i) => t.tileIdx === i);
+  const feedback = document.getElementById('examSentenceFeedback');
+  const item = examItems[examPos];
+  if(isCorrect){
+    s.solved = true;
+    examScore.sentence.total++;
+    examScore.sentence.correct++;
+    feedback.innerHTML = `¡Correcto! 🎉 <strong>${s.sentence.tiles.join('')}${s.sentence.punct}</strong>`;
+    feedback.className = 'game-feedback correct-txt';
+    document.getElementById('examSentenceNextBtn').style.display = 'inline-block';
+    renderExamSentence();
+    speak(s.sentence.tiles.join(''));
+  }else{
+    if(!s.wrongAttempt){ s.wrongAttempt = true; examScore.sentence.total++; }
+    feedback.textContent = 'Ese orden no es correcto — seguí ajustando (toca una palabra para devolverla)';
+    feedback.className = 'game-feedback incorrect-txt';
+    document.querySelectorAll('#examSentenceAnswer .sentence-tile').forEach(b=>{
+      b.classList.add('wrong-flash');
+      setTimeout(()=>b.classList.remove('wrong-flash'), 350);
+    });
+  }
+});
+
+document.getElementById('examSentenceNextBtn').addEventListener('click', advanceExam);
 
 // --- multiple choice: significado y tono comparten la misma marcacion ---
 function showExamMc(item){
@@ -1763,7 +1839,7 @@ function showExamSummary(){
   document.getElementById('examProgress').textContent = '';
   document.getElementById('examPhaseLabel').textContent = '';
   const parts = [
-    ['📇 Tarjetas', examScore.flash],
+    ['📝 Ordena la oración', examScore.sentence],
     ['🎯 Significado', examScore.mc],
     ['🔗 Emparejar', examScore.match],
     ['🎵 Tonos', examScore.tone],
