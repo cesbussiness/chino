@@ -484,6 +484,94 @@ Emparejar + Tonos + oraciones) termina en el resumen sin errores de
 consola, sin overflow horizontal en mobile, y se probo tanto el build normal
 como el `--protect`.
 
+## Practicas de Duolingo (5 agregadas a pedido del usuario)
+
+El usuario pidio aplicar 5 practicas de aprendizaje de Duolingo a las 5
+lecciones. Resumen de como quedo cada una (detalle de diseño en el plan
+aprobado, referenciado aca por los nombres de funcion/dato reales):
+
+**Nota previa a esta tanda de cambios**: el checkout local de la sesion
+estaba desactualizado (2 commits viejos, de antes del split en `src/` y de
+las 4 lecciones). Se verifico con `git merge-base` que el HEAD local era
+ancestro directo de `origin/claude/curso-chino-repo-0tyzkj` (mismo
+historial, solo atrasado) y se hizo un fast-forward limpio antes de tocar
+nada — sin riesgo de perder trabajo.
+
+1. **Racha diaria** (`touchStreak()`/`getStreak()`/`renderStreakBadge()`,
+   `localStorage['chino_streak_v1']`): se cuenta una vez por `loadLesson()`
+   (entrar a estudiar, no solo abrir la app). Mismo dia no suma, dia
+   siguiente suma, salto de 2+ dias reinicia a 1. Badge "🔥 N dias" visible
+   tanto en la pantalla de seleccion de leccion como en el header de la app
+   (clase compartida `.streak-badge`, un solo renderer para ambos).
+2. **Repeticion espaciada (Leitner de 6 cajas)**
+   (`srsRecord()`/`srsDueSet()`/`srsPrioritizedQueue()`,
+   `localStorage['chino_srs_v1']`): cada registro es por
+   `(leccionId, hanzi exacto)` — nunca el `idx` numerico de `ALL_TERMS`, que
+   puede correrse si se reordena el `VOCAB` de una leccion (ya paso varias
+   veces en esta app). Intervalos por caja: 0/1/3/7/16/35 dias. Reordena,
+   NUNCA filtra: Tarjetas/Adivina/Tonos/Escribe el pinyin siguen cubriendo
+   el 100% del pool, solo que lo vencido va primero. Se registra resultado
+   (correcto/incorrecto) en Tarjetas, Adivina, Tonos, Escritura (por
+   palabra, segun si tuvo algun error) y en el Examen (Significado/Tono/
+   Ordena la oracion). Badges "🔴 N para repasar" en cada tarjeta de
+   `#lessonGrid` y "📅 N para repasar hoy" en el toolbar de Practica —
+   ambos cuentan SOLO palabras con registro previo y vencidas (una leccion
+   nunca empezada no muestra "para repasar", seria "sin empezar" no
+   "repasar"). Vive en el navegador del dispositivo — no sincroniza entre
+   equipos, se pierde si se borran los datos del sitio (limitacion
+   inherente a un HTML sin backend).
+3. **Repaso acumulado** (`LESSON_ORDER`, `buildCumulativeTerms()`,
+   `enterCumulativeMode()`/`exitCumulativeMode()`): modo OPCIONAL, nunca el
+   comportamiento por defecto. Boton "🔁 Repaso acumulado" en el toolbar de
+   Practica, visible solo si `LESSON_ORDER[currentLessonId] > 1` (Leccion 1
+   no tiene nada antes; "Aplicaciones Chinas" no es parte de la secuencia
+   1→2→3→4, no tiene boton). Al entrar, `ALL_TERMS` apunta a
+   `CUMULATIVE_TERMS` (union de la leccion actual + todas las anteriores,
+   cada termino tagueado con `originLessonId` para que la repeticion
+   espaciada se guarde bajo la leccion donde realmente vive, via
+   `srsLessonIdFor(term)`), se ocultan nivel/seccion (no tienen sentido
+   cruzando lecciones) y el Examen (su banco de oraciones es por leccion).
+   Tarjetas/Adivina/Emparejar x2/Tonos/Escribe el pinyin funcionan igual,
+   consumen `ALL_TERMS` generico. Las 4 palabras duplicadas a proposito
+   entre lecciones (四/八/九/谢谢, ver seccion de arriba) aparecen 2 veces en
+   el pool acumulado — es coherente (son la misma palabra en 2 lecciones
+   distintas), no un bug.
+4. **Produccion activa: Escribe el pinyin** (`startTypeRound()`, modo
+   `data-mode="type"`): mismo patron de cola-hasta-dominar que Adivina/
+   Tonos (cubre todo el pool, prioriza vencidas via SRS, reencola si falla),
+   pero con un input de texto libre en vez de opcion multiple. Comparacion
+   TOLERANTE (`gradeTypedPinyin()`/`normalizePinyinForCompare()`/
+   `stripToneMarks()` — mismo criterio que `tools/audit/pinyin_utils.py`,
+   portado a JS): sin tono se acepta como "correcto, pero revisa el tono"
+   (cuenta como acierto para la cola/SRS) en vez de mal — tipear diacriticas
+   en un celular es poco practico. Aplica a las 5 lecciones por igual.
+5. **Diálogos cortos** (`DIALOGUE_LECCIONx`, `renderDialogueReading()`,
+   `createDialoguePuzzle()`): un dialogo de 5-6 lineas (2 hablantes) por
+   Leccion 1-4, armado SOLO con vocabulario de esa leccion y las anteriores
+   (mismo criterio y mismo script de verificacion que `SENTENCE_BANK_x` del
+   Examen — cada palabra se chequeo contra la union acumulada antes de
+   cargarla). Pestaña nueva "💬 Diálogo" por lección: arriba se lee el
+   dialogo completo (hanzi+pinyin+traduccion por linea), abajo un
+   rompecabezas de "ordena las lineas" que reusa el patron de fichas de
+   "Ordena la oracion" del Examen (tocar para mover entre bandeja/respuesta,
+   Comprobar solo con la bandeja vacia, un intento incorrecto no avanza ni
+   se pierde — se sigue ajustando hasta acertar). "Aplicaciones Chinas" no
+   tiene esta pestaña (su vocabulario es de interfaz de apps, no arma
+   dialogo natural).
+
+Verificado con Playwright: racha (mockeando `Date` para simular dias
+distintos — incrementa, no duplica en el mismo dia, reinicia tras un salto),
+repeticion espaciada (unit tests directos de `srsRecord`/`srsDueSet`/
+`srsPrioritizedQueue` via `page.evaluate`, mas una verificacion end-to-end
+jugando Adivina de verdad y confirmando que escribe en `localStorage`),
+repaso acumulado (pool combinado del tamaño esperado, cobertura completa,
+restauracion correcta al salir), escribe el pinyin (tono exacto, sin tono,
+incorrecto con reencolado, cobertura completa de la leccion), y dialogos
+(se arman y resuelven las 4 lecciones, el camino de "orden incorrecto" no
+avanza). Suite completa de regresion (las 5 lecciones, los 8 modos de
+practica) sin errores de consola y sin overflow horizontal en mobile/
+tablet/desktop, en el build normal y en el `--protect`.
+
 ## Estado actual
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
@@ -575,7 +663,7 @@ Pestañas de esta lección: Introducción · Pantalla Principal (Meituan 首页,
 páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosario completo
 · Práctica.
 
-**Práctica** tiene 7 modos, todos comparten nivel/sección + filtro de escritura:
+**Práctica** tiene 8 modos, todos comparten nivel/sección + filtro de escritura:
 1. **📇 Tarjetas de repaso** — flashcard clásica, se voltea para ver pinyin+inglés
    + desglose de caracteres. Recall activo tipo Anki: 🔴 **Repasar** manda la
    tarjeta al final de la cola de la ronda actual (y a la cola global de
@@ -681,7 +769,11 @@ páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosari
    los tonos (para practicar oído tonal). Mismo criterio que Adivina: cubre
    todo el filtro (solo palabras con `TONE_GAME_DATA`) con cola que se vacía,
    sin muestra fija ni respuestas incorrectas perdidas.
-6. **✍️ Practicar escritura** — orden de trazos real por carácter (via
+6. **⌨️ Escribe el pinyin** — produccion activa (a diferencia de los anteriores,
+   que son de opcion multiple/reconocimiento): input de texto libre en vez de
+   botones. Comparacion tolerante (sin tono = "correcto, revisa el tono", no
+   error) via `gradeTypedPinyin()`. Mismo patron de cola-hasta-dominar.
+7. **✍️ Practicar escritura** — orden de trazos real por carácter (via
    [Hanzi Writer](https://chanind.github.io/hanzi-writer), vendorizado offline
    en `src/hanzi-writer.min.js` + `src/hanzi-data.js`). Arma una ronda de 12
    palabras del filtro activo y las aplana en una secuencia unica de
@@ -722,7 +814,7 @@ páginas de iconos) · 外卖 Delivery · 京东 JD · 🔗 En común · Glosari
    scroll (`.write-practice-area` con `flex-direction:row` en desktop,
    ver bug/mejora de layout de Adivina/Tonos mas arriba, mismo criterio
    general de "evitar scroll en las vistas de pc").
-7. **📝 Examen** — a pedido del usuario ("una especie de examen ... que no
+8. **📝 Examen** — a pedido del usuario ("una especie de examen ... que no
    permita avanzar hacia atras sino solamente hacia adelante y al final me
    deje una puntuacion"): combina en una sola secuencia, para el filtro
    activo (nivel/sección + "solo simplificado"), 4 tipos de pregunta en

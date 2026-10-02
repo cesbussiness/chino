@@ -26,6 +26,7 @@
 <div class="lesson-picker" id="lessonPicker">
   <div class="lesson-picker-inner">
     <h1>Elegi tu leccion</h1>
+    <span class="streak-badge" id="streakBadgePicker" style="display:none;"></span>
     <p>Cada leccion tiene su propio vocabulario y su propia practica (tarjetas, juegos, examen).
     Se estudia una leccion a la vez — podes cambiar de leccion cuando quieras desde el menu.</p>
     <div class="lesson-grid" id="lessonGrid">
@@ -63,6 +64,7 @@
   <div class="header-inner">
     <div class="header-top-row">
       <h1><span class="h1-text">Guia Interactiva de Chino Mandarin</span></h1>
+      <span class="streak-badge" id="streakBadgeApp" style="display:none;"></span>
       <button id="menuToggleBtn" class="menu-toggle-btn" aria-expanded="false">☰ Menu</button>
     </div>
     <div class="lesson-badge-row" id="lessonBadgeRow">
@@ -79,16 +81,20 @@
 
         <button data-panel="p-l1-intro" data-lesson="leccion1" style="display:none;">Introduccion</button>
         <button data-panel="p-l1-vocab" data-lesson="leccion1" style="display:none;">Vocabulario</button>
+        <button data-panel="p-l1-dialogo" data-lesson="leccion1" style="display:none;">💬 Diálogo</button>
 
         <button data-panel="p-l2-intro" data-lesson="leccion2" style="display:none;">Introduccion</button>
         <button data-panel="p-l2-vocab" data-lesson="leccion2" style="display:none;">Vocabulario</button>
+        <button data-panel="p-l2-dialogo" data-lesson="leccion2" style="display:none;">💬 Diálogo</button>
 
         <button data-panel="p-l3-intro" data-lesson="leccion3" style="display:none;">Introduccion</button>
         <button data-panel="p-l3-vocab" data-lesson="leccion3" style="display:none;">Vocabulario</button>
+        <button data-panel="p-l3-dialogo" data-lesson="leccion3" style="display:none;">💬 Diálogo</button>
 
         <button data-panel="p-l4-intro" data-lesson="leccion4" style="display:none;">Introduccion</button>
         <button data-panel="p-l4-llegada" data-lesson="leccion4" style="display:none;">Llegada, aduana y taxi</button>
         <button data-panel="p-l4-salida" data-lesson="leccion4" style="display:none;">Salida y embarque</button>
+        <button data-panel="p-l4-dialogo" data-lesson="leccion4" style="display:none;">💬 Diálogo</button>
 
         <button data-panel="p-glosario">Glosario completo</button>
         <button data-panel="p-practica">Practica / Tarjetas</button>
@@ -468,6 +474,26 @@
     <div class="grid-cards" data-section="leccion1_todo"></div>
   </section>
 
+  <section class="panel" id="p-l1-dialogo" data-lesson="leccion1">
+    <div class="intro-box">
+      <h2>💬 Diálogo corto</h2>
+      <p>Armado solo con palabras que ya viste en esta lección. Primero leelo, después intenta
+      ordenar las líneas de memoria.</p>
+    </div>
+    <div class="dialogue-reading" id="dialogueReading-leccion1"></div>
+    <div class="intro-box" style="margin-top:16px;">
+      <h2>Ordená las líneas</h2>
+      <p>Tocá las líneas en el orden correcto para reconstruir la conversación.</p>
+    </div>
+    <div class="dialogue-answer" id="dialogueAnswer-leccion1"></div>
+    <div class="dialogue-tray" id="dialogueTray-leccion1"></div>
+    <div class="game-feedback" id="dialogueFeedback-leccion1"></div>
+    <div class="practice-controls">
+      <button class="secondary" id="dialogueResetBtn-leccion1">↺ Reiniciar</button>
+      <button class="fc-advance-btn" id="dialogueCheckBtn-leccion1">Comprobar</button>
+    </div>
+  </section>
+
   <!-- ============ LECCION 2: NUMEROS ============ -->
   <section class="panel" id="p-l2-intro" data-lesson="leccion2">
     <div class="intro-box">
@@ -526,6 +552,26 @@
     <div class="grid-cards" data-section="leccion2_todo"></div>
   </section>
 
+  <section class="panel" id="p-l2-dialogo" data-lesson="leccion2">
+    <div class="intro-box">
+      <h2>💬 Diálogo corto</h2>
+      <p>Armado solo con palabras que ya viste en esta lección y la anterior. Primero leelo,
+      después intenta ordenar las líneas de memoria.</p>
+    </div>
+    <div class="dialogue-reading" id="dialogueReading-leccion2"></div>
+    <div class="intro-box" style="margin-top:16px;">
+      <h2>Ordená las líneas</h2>
+      <p>Tocá las líneas en el orden correcto para reconstruir la conversación.</p>
+    </div>
+    <div class="dialogue-answer" id="dialogueAnswer-leccion2"></div>
+    <div class="dialogue-tray" id="dialogueTray-leccion2"></div>
+    <div class="game-feedback" id="dialogueFeedback-leccion2"></div>
+    <div class="practice-controls">
+      <button class="secondary" id="dialogueResetBtn-leccion2">↺ Reiniciar</button>
+      <button class="fc-advance-btn" id="dialogueCheckBtn-leccion2">Comprobar</button>
+    </div>
+  </section>
+
   <!-- ============ LECCION 3: NACIONALIDAD ============ -->
   <section class="panel" id="p-l3-intro" data-lesson="leccion3">
     <div class="intro-box">
@@ -573,6 +619,26 @@
       eres.</p>
     </div>
     <div class="grid-cards" data-section="leccion3_todo"></div>
+  </section>
+
+  <section class="panel" id="p-l3-dialogo" data-lesson="leccion3">
+    <div class="intro-box">
+      <h2>💬 Diálogo corto</h2>
+      <p>Armado solo con palabras de esta lección y las anteriores. Primero leelo, después
+      intenta ordenar las líneas de memoria.</p>
+    </div>
+    <div class="dialogue-reading" id="dialogueReading-leccion3"></div>
+    <div class="intro-box" style="margin-top:16px;">
+      <h2>Ordená las líneas</h2>
+      <p>Tocá las líneas en el orden correcto para reconstruir la conversación.</p>
+    </div>
+    <div class="dialogue-answer" id="dialogueAnswer-leccion3"></div>
+    <div class="dialogue-tray" id="dialogueTray-leccion3"></div>
+    <div class="game-feedback" id="dialogueFeedback-leccion3"></div>
+    <div class="practice-controls">
+      <button class="secondary" id="dialogueResetBtn-leccion3">↺ Reiniciar</button>
+      <button class="fc-advance-btn" id="dialogueCheckBtn-leccion3">Comprobar</button>
+    </div>
   </section>
 
   <!-- ============ LECCION 4: EN EL AEROPUERTO ============ -->
@@ -630,6 +696,26 @@
     <div class="grid-cards" data-section="leccion4_salida"></div>
   </section>
 
+  <section class="panel" id="p-l4-dialogo" data-lesson="leccion4">
+    <div class="intro-box">
+      <h2>💬 Diálogo corto</h2>
+      <p>Armado solo con palabras de esta lección y las anteriores. Primero leelo, después
+      intenta ordenar las líneas de memoria.</p>
+    </div>
+    <div class="dialogue-reading" id="dialogueReading-leccion4"></div>
+    <div class="intro-box" style="margin-top:16px;">
+      <h2>Ordená las líneas</h2>
+      <p>Tocá las líneas en el orden correcto para reconstruir la conversación.</p>
+    </div>
+    <div class="dialogue-answer" id="dialogueAnswer-leccion4"></div>
+    <div class="dialogue-tray" id="dialogueTray-leccion4"></div>
+    <div class="game-feedback" id="dialogueFeedback-leccion4"></div>
+    <div class="practice-controls">
+      <button class="secondary" id="dialogueResetBtn-leccion4">↺ Reiniciar</button>
+      <button class="fc-advance-btn" id="dialogueCheckBtn-leccion4">Comprobar</button>
+    </div>
+  </section>
+
   <!-- ============ GLOSARIO ============ -->
   <section class="panel" id="p-glosario">
     <div class="intro-box">
@@ -650,7 +736,13 @@
       juegos de opcion multiple, emparejar, tonos, escritura o un examen final que mezcla todo.</p>
     </details>
 
+    <div class="cumulative-banner" id="cumulativeBanner" style="display:none;">
+      <span id="cumulativeBannerText">🔁 Repaso acumulado</span>
+      <button id="cumulativeExitBtn">⬅ Volver a la lección</button>
+    </div>
+
     <div class="practice-toolbar">
+      <button id="cumulativeEnterBtn" style="display:none;">🔁 Repaso acumulado (mezcla con lecciones anteriores)</button>
       <div class="section-switch" id="sectionSwitchWrap">
         <label class="section-select-label" for="sectionSelect">Seccion especifica (opcional, anula el nivel de abajo):</label>
         <select id="sectionSelect"></select>
@@ -667,10 +759,12 @@
         <button data-mode="match">🔗 Emparejar: Significado</button>
         <button data-mode="matchpy">🔗 Emparejar: Pinyin</button>
         <button data-mode="tones">🎵 Juego: Tonos</button>
+        <button data-mode="type">⌨️ Escribe el pinyin</button>
         <button data-mode="write">✍️ Practicar escritura</button>
         <button data-mode="exam">📝 Examen</button>
       </div>
       <button id="missedBtn" style="display:none;">📌 Repasar las que fallaste (<span id="missedCount">0</span>)</button>
+      <span class="srs-due-text" id="srsDueText" style="display:none;"></span>
     </div>
 
     <!-- Flashcard review mode -->
@@ -754,6 +848,33 @@
       <div class="game-feedback" id="tonesFeedback"></div>
       <button id="tonesNextBtn" style="display:none;">Siguiente pregunta ▶</button>
       <div class="game-summary" id="tonesSummary" style="display:none;"></div>
+    </div>
+
+    <!-- Produccion activa: escribir el pinyin a mano (no elegir entre
+         opciones) -- mismo patron de cola-hasta-dominar que Adivina/Tonos -->
+    <div class="game-wrap" id="typeMode" style="display:none;">
+      <div class="game-stats">
+        <span>🔥 Racha: <b id="typeStreak">0</b></span>
+        <span id="typeProgress">0 de 0 dominadas</span>
+      </div>
+      <div class="game-question">
+        <div id="typeIconWrap"></div>
+        <div class="game-hz" id="typeHz">购物车</div>
+        <div class="en" id="typeEn" style="margin-top:2px;">shopping cart</div>
+        <button class="speak-btn" id="typeSpeak">🔊 Escuchar</button>
+        <div class="recorder" id="typeRecorder">
+          <button class="record-btn" data-role="record">🎙️ Grabar mi voz</button>
+          <audio class="record-playback" data-role="playback" controls></audio>
+        </div>
+      </div>
+      <p class="game-instruction">Escribi el pinyin (los tonos son opcionales, pero intenta ponerlos):</p>
+      <form id="typeForm" class="type-form" autocomplete="off">
+        <input type="text" id="typeInput" class="type-input" placeholder="ej: nihao o nǐhǎo" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button type="submit" id="typeSubmitBtn">Comprobar</button>
+      </form>
+      <div class="game-feedback" id="typeFeedback"></div>
+      <button id="typeNextBtn" style="display:none;">Siguiente palabra ▶</button>
+      <div class="game-summary" id="typeSummary" style="display:none;"></div>
     </div>
 
     <!-- Handwriting / stroke-order practice -->

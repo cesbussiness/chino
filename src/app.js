@@ -526,6 +526,173 @@ function buildAllTerms(){
 }
 
 // ---------------------------------------------------------------
+// Repaso acumulado: modo opcional (nunca el comportamiento por defecto de
+// una leccion) que mezcla el vocabulario de la leccion actual con el de
+// TODAS las lecciones anteriores en la secuencia 1->2->3->4 (nunca una
+// posterior). Reutiliza las mismas 5 modalidades de practica que ya
+// consumen ALL_TERMS generica mente (Tarjetas/Adivina/Emparejar x2/Tonos) --
+// Examen queda afuera porque su banco de oraciones es por leccion.
+// ---------------------------------------------------------------
+let cumulativeMode = false;
+let CUMULATIVE_TERMS = [];
+function buildCumulativeTerms(lessonId){
+  const myOrder = LESSON_ORDER[lessonId];
+  CUMULATIVE_TERMS = [];
+  Object.keys(LESSON_ORDER)
+    .filter(lid => LESSON_ORDER[lid] <= myOrder)
+    .sort((a,b)=> LESSON_ORDER[a] - LESSON_ORDER[b])
+    .forEach(lid=>{
+      const lessonVocab = LESSONS[lid].vocab;
+      Object.keys(lessonVocab.data).forEach(sec=>{
+        lessonVocab.data[sec].forEach(it=>{
+          CUMULATIVE_TERMS.push({...it, section: lessonVocab.titles[sec], sectionKey: sec, originLessonId: lid});
+        });
+      });
+    });
+  CUMULATIVE_TERMS.forEach((t,i)=>{ t.idx = i; });
+}
+// En repaso acumulado cada palabra guarda su repeticion espaciada bajo la
+// leccion donde realmente vive (`originLessonId`), no bajo la leccion que
+// se esta repasando -- asi el progreso que se hace aca es el MISMO
+// progreso que ve esa leccion si se practica por separado despues.
+function srsLessonIdFor(term){
+  return term.originLessonId || currentLessonId;
+}
+
+// ---------------------------------------------------------------
+// Persistencia local (localStorage): racha diaria + repeticion espaciada.
+// Vive en el navegador/dispositivo -- no sincroniza entre equipos y se
+// pierde si se borran los datos del sitio (limitacion inherente a un HTML
+// sin backend). Todas las lecturas/escrituras pasan por estos helpers con
+// try/catch: localStorage puede no estar disponible (modo privado, sitio
+// bloqueado) o el JSON puede estar corrupto -- en cualquiera de esos casos
+// la app sigue funcionando normal, solo sin persistencia.
+// ---------------------------------------------------------------
+function lsGet(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw == null) return fallback;
+    return JSON.parse(raw);
+  }catch(e){
+    return fallback;
+  }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* no-op */ }
+}
+function todayDayNumber(){
+  // dias desde epoch en hora LOCAL del usuario (no UTC), para que el corte
+  // de "dia" coincida con la medianoche real de donde esta la persona.
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return Math.floor(d.getTime() / 86400000);
+}
+
+// --- Racha diaria (global, no por leccion) ---
+const STREAK_KEY = 'chino_streak_v1';
+function getStreak(){
+  return lsGet(STREAK_KEY, {lastDay: null, streak: 0, longestStreak: 0});
+}
+function touchStreak(){
+  const today = todayDayNumber();
+  const s = getStreak();
+  if(s.lastDay === today) return s; // ya contado hoy, sin cambios
+  if(s.lastDay === today - 1) s.streak += 1;
+  else s.streak = 1;
+  s.lastDay = today;
+  s.longestStreak = Math.max(s.longestStreak || 0, s.streak);
+  lsSet(STREAK_KEY, s);
+  return s;
+}
+function renderStreakBadge(){
+  const s = getStreak();
+  const text = s.streak > 0 ? `🔥 ${s.streak} ${s.streak === 1 ? 'dia' : 'dias'}` : '';
+  document.querySelectorAll('.streak-badge').forEach(el=>{
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
+  });
+}
+
+// --- Repeticion espaciada (Leitner de 6 cajas: 0-5) ---
+// Clave de cada registro: (leccion, hanzi EXACTO) -- nunca el `idx` numerico
+// de ALL_TERMS, que puede correrse si en el futuro se reordena/ampl­ia el
+// VOCAB de una leccion (ya paso varias veces en esta app). Guardar por el
+// texto chino hace la persistencia inmune a esos cambios.
+const SRS_KEY = 'chino_srs_v1';
+const SRS_BOX_INTERVALS_DAYS = [0, 1, 3, 7, 16, 35]; // caja -> dias hasta el proximo repaso
+function srsLoad(){ return lsGet(SRS_KEY, {}); }
+function srsSave(data){ lsSet(SRS_KEY, data); }
+function srsRecord(lessonId, hz, wasCorrect){
+  const data = srsLoad();
+  if(!data[lessonId]) data[lessonId] = {};
+  const prev = data[lessonId][hz] || {box: 0, due: todayDayNumber()};
+  const box = wasCorrect ? Math.min(prev.box + 1, SRS_BOX_INTERVALS_DAYS.length - 1) : 0;
+  data[lessonId][hz] = {box, due: todayDayNumber() + SRS_BOX_INTERVALS_DAYS[box]};
+  srsSave(data);
+}
+// Set<hz> de palabras de esta leccion cuya fecha de repaso ya venció. Con
+// `onlySeen=false` (default, usado para PRIORIZAR la cola de practica) una
+// palabra sin registro todavia tambien cuenta como vencida, para que entre
+// a la ronda desde la primera vez que se ve. Con `onlySeen=true` (usado
+// para los badges de "N para repasar") una palabra nunca practicada NO
+// cuenta -- el badge es "volve a repasar esto que ya viste", no "esta
+// leccion tiene palabras sin empezar".
+function srsDueSet(lessonId, hzList, onlySeen){
+  const data = srsLoad();
+  const lessonData = data[lessonId] || {};
+  const today = todayDayNumber();
+  const due = new Set();
+  hzList.forEach(hz=>{
+    const rec = lessonData[hz];
+    if(rec ? rec.due <= today : !onlySeen) due.add(hz);
+  });
+  return due;
+}
+function srsDueCount(lessonId, hzList, onlySeen){
+  return srsDueSet(lessonId, hzList, onlySeen).size;
+}
+// Cuenta vencidas para una leccion SIN necesidad de tenerla cargada (para
+// el badge "N para repasar" de cada tarjeta en la pantalla de seleccion) --
+// lee directo de LESSONS[lessonId].vocab en vez de depender de ALL_TERMS.
+function srsDueCountForLesson(lessonId){
+  const lesson = LESSONS[lessonId];
+  if(!lesson) return 0;
+  const hzList = [];
+  Object.values(lesson.vocab.data).forEach(words=>{
+    words.forEach(w=>hzList.push(w.h));
+  });
+  return srsDueCount(lessonId, hzList, true);
+}
+function renderLessonDueBadges(){
+  document.querySelectorAll('.lesson-card[data-lesson]').forEach(card=>{
+    const lessonId = card.getAttribute('data-lesson');
+    const count = srsDueCountForLesson(lessonId);
+    let badge = card.querySelector('.lesson-card-due');
+    if(count === 0){
+      if(badge) badge.remove();
+      return;
+    }
+    if(!badge){
+      badge = document.createElement('div');
+      badge.className = 'lesson-card-due';
+      card.appendChild(badge);
+    }
+    badge.textContent = `🔴 ${count} para repasar`;
+  });
+}
+// Reordena (nunca filtra) un pool de indices de ALL_TERMS: las palabras
+// vencidas van primero (barajadas entre si), despues el resto (tambien
+// barajado) -- sigue cubriendo el 100% del pool, solo cambia por donde se
+// empieza. `pool` son indices de ALL_TERMS.
+function srsPrioritizedQueue(lessonId, pool){
+  const hzList = pool.map(i => ALL_TERMS[i].h);
+  const due = srsDueSet(lessonId, hzList);
+  const duePool = pool.filter(i => due.has(ALL_TERMS[i].h));
+  const restPool = pool.filter(i => !due.has(ALL_TERMS[i].h));
+  return [...shuffle(duePool), ...shuffle(restPool)];
+}
+
+// ---------------------------------------------------------------
 // Missed-words tracking (session only, shared by Adivina + Emparejar)
 // ---------------------------------------------------------------
 const missedIndices = new Set();
@@ -605,6 +772,10 @@ const SENTENCE_BANK_LECCION1 = [{"tiles":["你","好","吗"],"punct":"？","en":
 const SENTENCE_BANK_LECCION2 = [{"tiles":["我","十","八","岁","了"],"punct":"。","en":"Tengo 18 años."},{"tiles":["你","几","岁","了"],"punct":"？","en":"¿Cuántos años tienes?"},{"tiles":["你","的","手机","号码","是","多少"],"punct":"？","en":"¿Cuál es tu número de celular?"},{"tiles":["他","九十","岁","了"],"punct":"。","en":"Él tiene 90 años."},{"tiles":["一","二","三","四","五"],"punct":"。","en":"Uno, dos, tres, cuatro, cinco."},{"tiles":["六","七","八","九","十"],"punct":"。","en":"Seis, siete, ocho, nueve, diez."}];
 const SENTENCE_BANK_LECCION3 = [{"tiles":["我","是","中国人"],"punct":"。","en":"Soy chino/a."},{"tiles":["你","是","哪","国","人"],"punct":"？","en":"¿De qué país eres?"},{"tiles":["我","会","说","汉语"],"punct":"。","en":"Sé hablar chino."},{"tiles":["你","会","说","西班牙语","吗"],"punct":"？","en":"¿Sabes hablar español?"},{"tiles":["他","是","美国人"],"punct":"。","en":"Él es estadounidense."},{"tiles":["我","是","巴西人"],"punct":"。","en":"Soy brasileño/a."}];
 const SENTENCE_BANK_LECCION4 = [{"tiles":["请","出示","护照"],"punct":"。","en":"Por favor muestre su pasaporte."},{"tiles":["这是","我","的","护照"],"punct":"。","en":"Esto es mi pasaporte."},{"tiles":["出租车","在","右手边"],"punct":"。","en":"El taxi está a la derecha."},{"tiles":["机场","在","哪里"],"punct":"？","en":"¿Dónde está el aeropuerto?"},{"tiles":["祝","你","旅途","愉快"],"punct":"！","en":"¡Que tengas un buen viaje!"},{"tiles":["我","没","有","申报","的","物品"],"punct":"。","en":"No tengo artículos que declarar."}];
+const DIALOGUE_LECCION1 = [{"speaker":"A","tiles":["你","好"],"punct":"！","en":"¡Hola!","py":["nǐ","hǎo"]},{"speaker":"B","tiles":["您","好","怎么样"],"punct":"？","en":"Hola (formal), ¿qué tal?","py":["nín","hǎo","zěnme yàng"]},{"speaker":"A","tiles":["还","不错"],"punct":"。","en":"Bastante bien.","py":["hái","bùcuò"]},{"speaker":"B","tiles":["很","高兴","认识","你"],"punct":"！","en":"¡Mucho gusto en conocerte!","py":["hěn","gāoxìng","rènshi","nǐ"]},{"speaker":"A","tiles":["再见"],"punct":"！","en":"¡Adiós!","py":["zàijiàn"]}];
+const DIALOGUE_LECCION2 = [{"speaker":"A","tiles":["你","好"],"punct":"！","en":"¡Hola!","py":["nǐ","hǎo"]},{"speaker":"B","tiles":["你","几","岁","了"],"punct":"？","en":"¿Cuántos años tienes?","py":["nǐ","jǐ","suì","le"]},{"speaker":"A","tiles":["我","十","八","岁","了"],"punct":"。","en":"Tengo 18 años.","py":["wǒ","shí","bā","suì","le"]},{"speaker":"B","tiles":["你","的","手机","号码","是","多少"],"punct":"？","en":"¿Cuál es tu número de celular?","py":["nǐ","de","shǒujī","hàomǎ","shì","duōshǎo"]},{"speaker":"A","tiles":["再见"],"punct":"！","en":"¡Adiós!","py":["zàijiàn"]}];
+const DIALOGUE_LECCION3 = [{"speaker":"A","tiles":["你","好"],"punct":"！","en":"¡Hola!","py":["nǐ","hǎo"]},{"speaker":"B","tiles":["你","是","哪","国","人"],"punct":"？","en":"¿De qué país eres?","py":["nǐ","shì","nǎ","guó","rén"]},{"speaker":"A","tiles":["我","是","中国人"],"punct":"。","en":"Soy chino/a.","py":["wǒ","shì","zhōngguórén"]},{"speaker":"B","tiles":["你","会","说","英语","吗"],"punct":"？","en":"¿Sabes hablar inglés?","py":["nǐ","huì","shuō","yīngyǔ","ma"]},{"speaker":"A","tiles":["我","会","说","中文"],"punct":"。","en":"Hablo chino.","py":["wǒ","huì","shuō","zhōngwén"]},{"speaker":"B","tiles":["太","好","了"],"punct":"！","en":"¡Qué bien!","py":["tài","hǎo","le"]}];
+const DIALOGUE_LECCION4 = [{"speaker":"A","tiles":["请","出示","护照"],"punct":"。","en":"Por favor muestre su pasaporte.","py":["qǐng","chūshì","hùzhào"]},{"speaker":"B","tiles":["这是","我","的","护照"],"punct":"。","en":"Esto es mi pasaporte.","py":["zhè shì","wǒ","de","hùzhào"]},{"speaker":"A","tiles":["你","计划","住","多久"],"punct":"？","en":"¿Cuánto tiempo planeas quedarte?","py":["nǐ","jìhuà","zhù","duōjiǔ"]},{"speaker":"B","tiles":["我","住","两","个","星期"],"punct":"。","en":"Me quedo dos semanas.","py":["wǒ","zhù","liǎng","gè","xīngqī"]},{"speaker":"A","tiles":["欢迎"],"punct":"！","en":"¡Bienvenido/a!","py":["huānyíng"]},{"speaker":"B","tiles":["谢谢"],"punct":"！","en":"¡Gracias!","py":["xièxiè"]}];
 
 // ---------------------------------------------------------------
 // Sistema de lecciones: cada leccion es su propio VOCAB+LEVEL_MAP
@@ -634,6 +805,7 @@ const LESSONS = {
     levelMap: LEVELMAP_LECCION1,
     levelLabels: { 1: '① Fonética y saludos', 0: '🔀 Todo mezclado' },
     sentenceBank: SENTENCE_BANK_LECCION1,
+    dialogueBank: DIALOGUE_LECCION1,
   },
   leccion2: {
     id: 'leccion2',
@@ -642,6 +814,7 @@ const LESSONS = {
     levelMap: LEVELMAP_LECCION2,
     levelLabels: { 1: '① Números', 0: '🔀 Todo mezclado' },
     sentenceBank: SENTENCE_BANK_LECCION2,
+    dialogueBank: DIALOGUE_LECCION2,
   },
   leccion3: {
     id: 'leccion3',
@@ -650,6 +823,7 @@ const LESSONS = {
     levelMap: LEVELMAP_LECCION3,
     levelLabels: { 1: '① Nacionalidad', 0: '🔀 Todo mezclado' },
     sentenceBank: SENTENCE_BANK_LECCION3,
+    dialogueBank: DIALOGUE_LECCION3,
   },
   leccion4: {
     id: 'leccion4',
@@ -662,8 +836,14 @@ const LESSONS = {
       0: '🔀 Todo mezclado',
     },
     sentenceBank: SENTENCE_BANK_LECCION4,
+    dialogueBank: DIALOGUE_LECCION4,
   },
 };
+// Secuencia de las lecciones numeradas, para el modo "Repaso acumulado"
+// (mezclar vocabulario de lecciones ANTERIORES, nunca de una posterior a
+// la que se esta estudiando). "Aplicaciones Chinas" no forma parte de esta
+// secuencia -- es una leccion aparte, sin "antes"/"despues".
+const LESSON_ORDER = {leccion1: 1, leccion2: 2, leccion3: 3, leccion4: 4};
 let currentLessonId = null;
 let VOCAB = null;
 let LEVEL_MAP = null;
@@ -703,6 +883,44 @@ function buildToneOptions(term){
   ]);
 }
 
+// Normaliza pinyin para comparar respuestas escritas a mano: minuscula,
+// sin espacios/guiones/apostrofes. Mismo criterio que normalize_pinyin() en
+// tools/audit/pinyin_utils.py (loose comparison para el audit de datos),
+// portado a JS para el modo "Escribe el pinyin".
+function normalizePinyinForCompare(s){
+  return String(s || '').toLowerCase().replace(/['\s-]/g, '');
+}
+// Saca las marcas de tono (ā->a, etc) -- mismo mapa que strip_tone_marks()
+// en pinyin_utils.py -- para aceptar respuestas sin tono como "correctas,
+// pero revisa el tono" en vez de simplemente mal (tipear diacriticas en un
+// celular es poco practico).
+const TONE_STRIP_MAP = {
+  'ā':'a','á':'a','ǎ':'a','à':'a',
+  'ē':'e','é':'e','ě':'e','è':'e',
+  'ī':'i','í':'i','ǐ':'i','ì':'i',
+  'ō':'o','ó':'o','ǒ':'o','ò':'o',
+  'ū':'u','ú':'u','ǔ':'u','ù':'u',
+  'ǖ':'ü','ǘ':'ü','ǚ':'ü','ǜ':'ü',
+};
+function stripToneMarks(s){
+  return String(s || '').replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/g, ch => TONE_STRIP_MAP[ch] || ch);
+}
+// 'v'/'u:' son los placeholders ASCII mas comunes para ü en teclados sin
+// diacriticas -- se aceptan como equivalentes antes de comparar.
+function normalizeUPlaceholder(s){
+  return String(s || '').replace(/u:/g, 'ü').replace(/v/g, 'ü');
+}
+// Compara lo que escribio el alumno contra el pinyin correcto (puede tener
+// varias silabas separadas por espacio). Devuelve 'exact' (tonos incluidos),
+// 'toneless' (bien la silaba, tono no coincide o no lo puso) o 'wrong'.
+function gradeTypedPinyin(typed, correctPinyin){
+  const normTyped = normalizePinyinForCompare(normalizeUPlaceholder(typed));
+  const normCorrect = normalizePinyinForCompare(correctPinyin);
+  if(normTyped === normCorrect) return 'exact';
+  if(stripToneMarks(normTyped) === stripToneMarks(normCorrect)) return 'toneless';
+  return 'wrong';
+}
+
 // Si hay una seccion especifica elegida (currentSection !== 'ALL'), esa
 // seccion anula el nivel para las 4 actividades de practica. Si no, el nivel
 // decide el grupo de secciones como antes.
@@ -734,7 +952,7 @@ let fcTotalCount = 0;
 let fcMasteredCount = 0;
 
 function resetOrder(){
-  fcQueue = shuffle(getPoolIndices(currentLevel));
+  fcQueue = srsPrioritizedQueue(currentLessonId, getPoolIndices(currentLevel));
   fcTotalCount = fcQueue.length;
   fcMasteredCount = 0;
 }
@@ -784,6 +1002,7 @@ document.getElementById('fcAdvanceBtn').addEventListener('click', ()=>{
   if(fcQueue.length === 0) return;
   const term = ALL_TERMS[fcQueue.shift()];
   removeMissed(term);
+  srsRecord(srsLessonIdFor(term), term.h, true);
   fcMasteredCount++;
   nextCard();
 });
@@ -793,6 +1012,7 @@ document.getElementById('fcReviewBtn').addEventListener('click', ()=>{
   const idx = fcQueue.shift();
   fcQueue.push(idx);
   addMissed(ALL_TERMS[idx]);
+  srsRecord(srsLessonIdFor(ALL_TERMS[idx]), ALL_TERMS[idx].h, false);
   nextCard();
 });
 
@@ -817,7 +1037,7 @@ let gameAnswered = false;
 
 function startGameRound(){
   gamePool = getPoolIndices(currentLevel);
-  gameQueue = shuffle([...gamePool]);
+  gameQueue = srsPrioritizedQueue(currentLessonId, [...gamePool]);
   gameTotalCount = gameQueue.length;
   gameMasteredCount = 0;
   gameWrongAttempts = 0;
@@ -877,6 +1097,7 @@ document.getElementById('gameOptions').addEventListener('click', (e)=>{
     feedback.innerHTML = '¡Correcto! 🎉' + breakdownHtml;
     feedback.className = 'game-feedback correct-txt';
     removeMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, true);
     gameQueue.shift();
   }else{
     btn.classList.add('incorrect');
@@ -885,6 +1106,7 @@ document.getElementById('gameOptions').addEventListener('click', (e)=>{
     feedback.innerHTML = 'Casi — va a volver a aparecer mas adelante en esta ronda' + breakdownHtml;
     feedback.className = 'game-feedback incorrect-txt';
     addMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, false);
     gameQueue.push(gameQueue.shift());
   }
   document.getElementById('gameStreak').textContent = gameStreak;
@@ -928,6 +1150,7 @@ function refreshCurrentMode(){
   else if(currentMode === 'match'){ matchGame.start(); }
   else if(currentMode === 'matchpy'){ matchPyGame.start(); }
   else if(currentMode === 'tones'){ startTonesRound(); }
+  else if(currentMode === 'type'){ startTypeRound(); }
   else if(currentMode === 'write'){ startWriteRound(); }
   else if(currentMode === 'exam'){ startExam(); }
 }
@@ -967,6 +1190,7 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
   document.getElementById('matchMode').style.display = currentMode === 'match' ? '' : 'none';
   document.getElementById('matchpyMode').style.display = currentMode === 'matchpy' ? '' : 'none';
   document.getElementById('tonesMode').style.display = currentMode === 'tones' ? '' : 'none';
+  document.getElementById('typeMode').style.display = currentMode === 'type' ? '' : 'none';
   document.getElementById('writeMode').style.display = currentMode === 'write' ? '' : 'none';
   document.getElementById('examMode').style.display = currentMode === 'exam' ? '' : 'none';
   // free up vertical space in game modes: only show the long explainer for cards mode
@@ -1212,7 +1436,7 @@ function getTonesPoolIndices(){
 
 function startTonesRound(){
   const pool = getTonesPoolIndices();
-  tonesQueue = shuffle([...pool]);
+  tonesQueue = srsPrioritizedQueue(currentLessonId, [...pool]);
   tonesTotalCount = tonesQueue.length;
   tonesMasteredCount = 0;
   tonesWrongAttempts = 0;
@@ -1275,6 +1499,7 @@ document.getElementById('tonesOptions').addEventListener('click', (e)=>{
     feedback.textContent = '¡Correcto! 🎉';
     feedback.className = 'game-feedback correct-txt';
     removeMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, true);
     tonesQueue.shift();
   }else{
     btn.classList.add('incorrect');
@@ -1283,6 +1508,7 @@ document.getElementById('tonesOptions').addEventListener('click', (e)=>{
     feedback.textContent = 'Ese tono no es — va a volver a aparecer mas adelante en esta ronda';
     feedback.className = 'game-feedback incorrect-txt';
     addMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, false);
     tonesQueue.push(tonesQueue.shift());
   }
   document.getElementById('tonesStreak').textContent = tonesStreak;
@@ -1312,6 +1538,130 @@ function showTonesSummary(){
 
 document.getElementById('tonesSpeak').addEventListener('click', ()=>{
   speak(document.getElementById('tonesHz').getAttribute('data-hz'));
+});
+
+// ---------------------------------------------------------------
+// Produccion activa: escribir el pinyin a mano (no elegir entre opciones).
+// Mismo patron de cola-hasta-dominar que Adivina/Tonos: cubre TODO el pool
+// filtrado, prioriza lo vencido (SRS), y una respuesta incorrecta reencola
+// la palabra en vez de perderla. La comparacion es TOLERANTE: sin tono se
+// acepta como "correcto, pero revisa el tono" en vez de mal (las marcas
+// diacriticas son poco practicas de escribir en un celular) -- ver
+// gradeTypedPinyin() mas arriba.
+// ---------------------------------------------------------------
+let typeQueue = [];
+let typeTotalCount = 0;
+let typeMasteredCount = 0;
+let typeWrongAttempts = 0;
+let typeStreak = 0;
+let typeAnswered = false;
+
+function startTypeRound(){
+  const pool = getPoolIndices(currentLevel);
+  typeQueue = srsPrioritizedQueue(currentLessonId, [...pool]);
+  typeTotalCount = typeQueue.length;
+  typeMasteredCount = 0;
+  typeWrongAttempts = 0;
+  typeStreak = 0;
+  document.getElementById('typeStreak').textContent = '0';
+  document.getElementById('typeSummary').style.display = 'none';
+  document.getElementById('typeMode').querySelector('.game-question').style.display = '';
+  document.getElementById('typeMode').querySelector('.game-instruction').style.display = '';
+  document.getElementById('typeForm').style.display = '';
+  showTypeQuestion();
+}
+
+function showTypeQuestion(){
+  if(typeQueue.length === 0){ showTypeSummary(); return; }
+  resetRecorder(document.getElementById('typeRecorder'));
+  typeAnswered = false;
+  document.getElementById('typeNextBtn').style.display = 'none';
+  document.getElementById('typeFeedback').textContent = '';
+  document.getElementById('typeFeedback').className = 'game-feedback';
+  const input = document.getElementById('typeInput');
+  input.value = '';
+  input.className = 'type-input';
+  input.disabled = false;
+  document.getElementById('typeSubmitBtn').disabled = false;
+
+  const term = ALL_TERMS[typeQueue[0]];
+  document.getElementById('typeHz').innerHTML = term.h;
+  document.getElementById('typeHz').setAttribute('data-hz', term.h);
+  document.getElementById('typeEn').textContent = term.e;
+  document.getElementById('typeProgress').textContent = `${typeMasteredCount} de ${typeTotalCount} dominadas`;
+  const iconSrc = getIconB64(term.sectionKey, term.h);
+  document.getElementById('typeIconWrap').innerHTML = iconSrc
+    ? `<img class="app-icon" style="margin:0 auto 8px;" src="${iconSrc}" alt="icono">`
+    : '';
+  input.focus();
+}
+
+document.getElementById('typeForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  if(typeAnswered) return;
+  typeAnswered = true;
+  const term = ALL_TERMS[typeQueue[0]];
+  const input = document.getElementById('typeInput');
+  const grade = gradeTypedPinyin(input.value, term.p);
+  const feedback = document.getElementById('typeFeedback');
+  const breakdownHtml = renderWordBreakdown(term.h, term.p, term.e);
+  input.disabled = true;
+  document.getElementById('typeSubmitBtn').disabled = true;
+  if(grade === 'exact'){
+    input.classList.add('correct');
+    typeStreak++;
+    typeMasteredCount++;
+    feedback.innerHTML = `¡Correcto! 🎉 <strong>${term.p}</strong>${breakdownHtml}`;
+    feedback.className = 'game-feedback correct-txt';
+    removeMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, true);
+    typeQueue.shift();
+  }else if(grade === 'toneless'){
+    input.classList.add('partial');
+    typeStreak++;
+    typeMasteredCount++;
+    feedback.innerHTML = `✅ Correcto, pero revisa el tono: <strong>${term.p}</strong>${breakdownHtml}`;
+    feedback.className = 'game-feedback correct-txt';
+    removeMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, true);
+    typeQueue.shift();
+  }else{
+    input.classList.add('incorrect');
+    typeStreak = 0;
+    typeWrongAttempts++;
+    feedback.innerHTML = `Casi — el pinyin correcto es <strong>${term.p}</strong>, va a volver a aparecer mas adelante en esta ronda${breakdownHtml}`;
+    feedback.className = 'game-feedback incorrect-txt';
+    addMissed(term);
+    srsRecord(srsLessonIdFor(term), term.h, false);
+    typeQueue.push(typeQueue.shift());
+  }
+  document.getElementById('typeStreak').textContent = typeStreak;
+  document.getElementById('typeNextBtn').style.display = 'inline-block';
+  speak(term.h);
+});
+
+document.getElementById('typeNextBtn').addEventListener('click', showTypeQuestion);
+
+function showTypeSummary(){
+  document.getElementById('typeMode').querySelector('.game-question').style.display = 'none';
+  document.getElementById('typeMode').querySelector('.game-instruction').style.display = 'none';
+  document.getElementById('typeForm').style.display = 'none';
+  document.getElementById('typeNextBtn').style.display = 'none';
+  document.getElementById('typeFeedback').textContent = '';
+  const summary = document.getElementById('typeSummary');
+  summary.style.display = 'block';
+  summary.innerHTML = typeTotalCount === 0
+    ? `<p style="color:#999;">No hay palabras en este filtro.</p>`
+    : `
+    <div class="big-score">🎉 ${typeTotalCount} / ${typeTotalCount}</div>
+    <p>¡Escribiste todas las palabras de esta ronda!${typeWrongAttempts > 0 ? ` (con ${typeWrongAttempts} respuesta${typeWrongAttempts===1?'':'s'} para repasar en el camino)` : ' sin ningun error'}</p>
+    <button id="typeReplayBtn" class="speak-btn" style="margin-top:8px;">🔁 Jugar de nuevo</button>
+  `;
+  document.getElementById('typeReplayBtn').addEventListener('click', startTypeRound);
+}
+
+document.getElementById('typeSpeak').addEventListener('click', ()=>{
+  speak(document.getElementById('typeHz').getAttribute('data-hz'));
 });
 
 // ---------------------------------------------------------------
@@ -1385,7 +1735,7 @@ function startWriteRound(){
     ? Array.from(missedIndices).filter(i => hasWritableChar(ALL_TERMS[i].h))
     : getPoolIndices(currentLevel).filter(i => hasWritableChar(ALL_TERMS[i].h));
   const size = Math.min(WRITE_ROUND_SIZE, pool.length);
-  writeQueue = shuffle([...pool]).slice(0, size);
+  writeQueue = srsPrioritizedQueue(currentLessonId, [...pool]).slice(0, size);
   writeSequence = buildWriteSequence(writeQueue);
   writeSeqPos = 0;
   writeTotalMistakes = 0;
@@ -1404,8 +1754,10 @@ function finalizeWord(termIdx){
   if(writeFinalizedWords.has(termIdx)) return;
   writeFinalizedWords.add(termIdx);
   const term = ALL_TERMS[termIdx];
-  if(!writeWordMistakeCounts[termIdx]) removeMissed(term);
+  const hadMistakes = !!writeWordMistakeCounts[termIdx];
+  if(!hadMistakes) removeMissed(term);
   else addMissed(term);
+  srsRecord(srsLessonIdFor(term), term.h, !hadMistakes);
 }
 
 function renderWriteCharDetail(termIdx, ch){
@@ -1667,8 +2019,13 @@ document.getElementById('examSentenceCheckBtn').addEventListener('click', ()=>{
     document.getElementById('examSentenceNextBtn').style.display = 'inline-block';
     renderExamSentence();
     speak(s.sentence.tiles.join(''));
+    new Set(s.sentence.tiles).forEach(hz => srsRecord(currentLessonId, hz, true));
   }else{
-    if(!s.wrongAttempt){ s.wrongAttempt = true; examScore.sentence.total++; }
+    if(!s.wrongAttempt){
+      s.wrongAttempt = true;
+      examScore.sentence.total++;
+      new Set(s.sentence.tiles).forEach(hz => srsRecord(currentLessonId, hz, false));
+    }
     feedback.textContent = 'Ese orden no es correcto — seguí ajustando (toca una palabra para devolverla)';
     feedback.className = 'game-feedback incorrect-txt';
     document.querySelectorAll('#examSentenceAnswer .sentence-tile').forEach(b=>{
@@ -1733,6 +2090,7 @@ document.getElementById('examMcOptions').addEventListener('click', (e)=>{
   bucket.total++;
   const isCorrect = btn.getAttribute('data-correct') === 'true';
   if(isCorrect) bucket.correct++;
+  srsRecord(currentLessonId, ALL_TERMS[item.termIdx].h, isCorrect);
   document.querySelectorAll('#examMcOptions .option-btn').forEach(b=>{
     b.disabled = true;
     if(b.getAttribute('data-correct') === 'true') b.classList.add('correct');
@@ -1862,6 +2220,123 @@ function showExamSummary(){
 }
 
 // ---------------------------------------------------------------
+// Dialogos cortos: lectura (hanzi+pinyin+traduccion por linea) + un
+// rompecabezas de "ordena las lineas" que reusa el mismo patron de fichas
+// que "Ordena la oracion" del Examen (tocar para mover entre bandeja y
+// respuesta, Comprobar solo cuando la bandeja esta vacia, un intento
+// incorrecto no avanza ni se pierde -- se puede seguir ajustando hasta
+// acertar). Solo Leccion 1-4 tienen `dialogueBank` (el vocabulario de
+// "Aplicaciones Chinas" es de interfaz, no arma dialogo natural).
+// ---------------------------------------------------------------
+function renderDialogueReading(lessonId){
+  const lesson = LESSONS[lessonId];
+  const el = document.getElementById('dialogueReading-' + lessonId);
+  if(!el || !lesson.dialogueBank) return;
+  el.innerHTML = lesson.dialogueBank.map(line => `
+    <div class="dialogue-line speaker-${line.speaker}">
+      <div class="dialogue-speaker">${line.speaker}</div>
+      <div class="dialogue-line-text">
+        <div class="hz">${line.tiles.join('')}${line.punct}</div>
+        <div class="py">${line.py.join(' ')}</div>
+        <div class="en">${line.en}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function createDialoguePuzzle(lessonId){
+  const ids = {
+    answer: 'dialogueAnswer-' + lessonId,
+    tray: 'dialogueTray-' + lessonId,
+    feedback: 'dialogueFeedback-' + lessonId,
+    reset: 'dialogueResetBtn-' + lessonId,
+    check: 'dialogueCheckBtn-' + lessonId,
+  };
+  const state = { tray: [], answer: [], solved: false };
+
+  function tileHtml(line){
+    return `<button class="dialogue-tile${state.solved ? ' correct' : ''}" data-line-idx="${line.lineIdx}"${state.solved ? ' disabled' : ''}><b>${line.speaker}:</b> ${line.tiles.join('')}${line.punct}</button>`;
+  }
+  function render(){
+    document.getElementById(ids.answer).innerHTML = state.answer.map(tileHtml).join('');
+    document.getElementById(ids.tray).innerHTML = state.tray.map(tileHtml).join('');
+  }
+  function start(){
+    const lesson = LESSONS[lessonId];
+    if(!lesson.dialogueBank) return;
+    state.tray = shuffle(lesson.dialogueBank.map((l,i)=>({...l, lineIdx:i})));
+    state.answer = [];
+    state.solved = false;
+    const feedback = document.getElementById(ids.feedback);
+    feedback.textContent = '';
+    feedback.className = 'game-feedback';
+    render();
+  }
+
+  document.getElementById(ids.answer).addEventListener('click', (e)=>{
+    const btn = e.target.closest('.dialogue-tile');
+    if(!btn || state.solved) return;
+    const idx = Number(btn.getAttribute('data-line-idx'));
+    const pos = state.answer.findIndex(l=>l.lineIdx===idx);
+    if(pos === -1) return;
+    const [line] = state.answer.splice(pos, 1);
+    state.tray.push(line);
+    const feedback = document.getElementById(ids.feedback);
+    feedback.textContent = '';
+    feedback.className = 'game-feedback';
+    render();
+  });
+  document.getElementById(ids.tray).addEventListener('click', (e)=>{
+    const btn = e.target.closest('.dialogue-tile');
+    if(!btn || state.solved) return;
+    const idx = Number(btn.getAttribute('data-line-idx'));
+    const pos = state.tray.findIndex(l=>l.lineIdx===idx);
+    if(pos === -1) return;
+    const [line] = state.tray.splice(pos, 1);
+    state.answer.push(line);
+    render();
+  });
+  document.getElementById(ids.reset).addEventListener('click', ()=>{
+    if(state.solved) return;
+    state.tray = shuffle([...state.tray, ...state.answer]);
+    state.answer = [];
+    render();
+  });
+  document.getElementById(ids.check).addEventListener('click', ()=>{
+    if(state.tray.length > 0 || state.solved) return;
+    const isCorrect = state.answer.every((l,i)=> l.lineIdx === i);
+    const feedback = document.getElementById(ids.feedback);
+    if(isCorrect){
+      state.solved = true;
+      feedback.textContent = '¡Correcto! 🎉 Reconstruiste la conversación.';
+      feedback.className = 'game-feedback correct-txt';
+      render();
+    }else{
+      feedback.textContent = 'Ese orden no es correcto — seguí ajustando (toca una línea para devolverla)';
+      feedback.className = 'game-feedback incorrect-txt';
+      document.querySelectorAll(`#${ids.answer} .dialogue-tile`).forEach(b=>{
+        b.classList.add('wrong-flash');
+        setTimeout(()=>b.classList.remove('wrong-flash'), 350);
+      });
+    }
+  });
+
+  return { start };
+}
+
+const dialoguePuzzles = {
+  leccion1: createDialoguePuzzle('leccion1'),
+  leccion2: createDialoguePuzzle('leccion2'),
+  leccion3: createDialoguePuzzle('leccion3'),
+  leccion4: createDialoguePuzzle('leccion4'),
+};
+function renderDialoguePanel(lessonId){
+  if(!dialoguePuzzles[lessonId]) return;
+  renderDialogueReading(lessonId);
+  dialoguePuzzles[lessonId].start();
+}
+
+// ---------------------------------------------------------------
 // Cargar una leccion: swap de VOCAB/LEVEL_MAP + reset completo de estado de
 // filtros/practica + mostrar sus pestañas y ocultar las de otras lecciones.
 // "Solo se estudia una leccion a la vez": nunca se mezclan ALL_TERMS de dos
@@ -1881,9 +2356,20 @@ function resetPracticeUiToDefaults(){
   document.getElementById('matchMode').style.display = 'none';
   document.getElementById('matchpyMode').style.display = 'none';
   document.getElementById('tonesMode').style.display = 'none';
+  document.getElementById('typeMode').style.display = 'none';
   document.getElementById('writeMode').style.display = 'none';
   document.getElementById('examMode').style.display = 'none';
   document.getElementById('practicaIntroBox').style.display = '';
+}
+
+function rebuildLevelSwitch(lesson, activeLevel){
+  const levelKeys = Object.keys(lesson.levelMap).map(Number)
+    .sort((a,b)=> (a===0?1:a) - (b===0?1:b) || a-b);
+  document.getElementById('levelSwitch').innerHTML = levelKeys.map(lv =>
+    `<button data-level="${lv}"${lv===activeLevel ? ' class="active"' : ''}>${
+      (lesson.levelLabels && lesson.levelLabels[lv]) || `Nivel ${lv}`
+    }</button>`
+  ).join('');
 }
 
 function loadLesson(lessonId){
@@ -1899,26 +2385,36 @@ function loadLesson(lessonId){
   currentSection = 'ALL';
   reviewMissedMode = false;
   missedIndices.clear();
+  cumulativeMode = false;
+  document.getElementById('cumulativeBanner').style.display = 'none';
+  document.getElementById('cumulativeEnterBtn').style.display =
+    (LESSON_ORDER[lessonId] && LESSON_ORDER[lessonId] > 1) ? '' : 'none';
+  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
+  document.getElementById('sectionSwitchWrap').style.display = '';
+  document.getElementById('levelSwitch').style.display = '';
+
+  touchStreak();
+  renderStreakBadge();
 
   buildAllTerms();
   renderLessonGridCards(lessonId);
+  renderDialoguePanel(lessonId);
   document.getElementById('sectionSelect').value = 'ALL';
   populateSectionSelect();
   renderGlossary();
   document.getElementById('searchInput').value = '';
+
+  const srsDue = srsDueCountForLesson(lessonId);
+  const srsDueEl = document.getElementById('srsDueText');
+  srsDueEl.textContent = srsDue > 0 ? `📅 ${srsDue} para repasar hoy` : '';
+  srsDueEl.style.display = srsDue > 0 ? '' : 'none';
 
   // El switch de niveles es especifico de cada leccion (cantidad de niveles
   // y sus nombres varian), asi que se reconstruye desde levelLabels cada vez
   // que se carga una leccion. El listener de clicks esta delegado en el
   // contenedor #levelSwitch (ver mas abajo), asi que sigue funcionando con
   // botones nuevos sin necesidad de volver a engancharlo.
-  const levelKeys = Object.keys(lesson.levelMap).map(Number)
-    .sort((a,b)=> (a===0?1:a) - (b===0?1:b) || a-b);
-  document.getElementById('levelSwitch').innerHTML = levelKeys.map(lv =>
-    `<button data-level="${lv}"${lv===1 ? ' class="active"' : ''}>${
-      (lesson.levelLabels && lesson.levelLabels[lv]) || `Nivel ${lv}`
-    }</button>`
-  ).join('');
+  rebuildLevelSwitch(lesson, 1);
 
   resetPracticeUiToDefaults();
   updateMissedButton();
@@ -1947,13 +2443,96 @@ function loadLesson(lessonId){
   window.scrollTo({top:0});
 }
 
+// ---------------------------------------------------------------
+// Repaso acumulado: entrar/salir. Nunca toca `loadLesson()` ni resetea la
+// leccion activa -- solo cambia que apunta ALL_TERMS y neutraliza
+// nivel/seccion (no tienen sentido cruzando lecciones). Examen y los
+// selectores de nivel/seccion se ocultan mientras esta activo porque no
+// aplican (ver comentario en buildCumulativeTerms).
+// ---------------------------------------------------------------
+function enterCumulativeMode(){
+  const order = LESSON_ORDER[currentLessonId];
+  if(!order || order <= 1) return;
+  buildCumulativeTerms(currentLessonId);
+  cumulativeMode = true;
+  ALL_TERMS = CUMULATIVE_TERMS;
+  currentSection = 'ALL';
+  currentLevel = 0;
+  reviewMissedMode = false;
+  missedIndices.clear();
+  updateMissedButton();
+
+  document.getElementById('sectionSelect').value = 'ALL';
+  populateSectionSelect();
+  document.getElementById('sectionSwitchWrap').style.display = 'none';
+  document.getElementById('levelSwitch').style.display = 'none';
+  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = 'none';
+  document.getElementById('srsDueText').style.display = 'none';
+
+  const includedTitles = Object.keys(LESSON_ORDER)
+    .filter(lid => LESSON_ORDER[lid] <= order)
+    .sort((a,b)=> LESSON_ORDER[a] - LESSON_ORDER[b])
+    .map(lid => LESSONS[lid].title.replace(/^Lección \d+: /, ''));
+  document.getElementById('cumulativeBannerText').textContent =
+    `🔁 Repaso acumulado: mezclando ${includedTitles.join(' + ')} (${ALL_TERMS.length} palabras)`;
+  document.getElementById('cumulativeBanner').style.display = '';
+  document.getElementById('cumulativeEnterBtn').style.display = 'none';
+
+  resetPracticeUiToDefaults();
+  resetOrder();
+  nextCard();
+  window.scrollTo({top:0});
+}
+
+function exitCumulativeMode(){
+  if(!cumulativeMode) return;
+  cumulativeMode = false;
+  buildAllTerms();
+  currentSection = 'ALL';
+  currentLevel = 1;
+  reviewMissedMode = false;
+  missedIndices.clear();
+  updateMissedButton();
+
+  document.getElementById('sectionSelect').value = 'ALL';
+  populateSectionSelect();
+  document.getElementById('sectionSwitchWrap').style.display = '';
+  document.getElementById('levelSwitch').style.display = '';
+  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
+  rebuildLevelSwitch(LESSONS[currentLessonId], 1);
+
+  const srsDue = srsDueCountForLesson(currentLessonId);
+  const srsDueEl = document.getElementById('srsDueText');
+  srsDueEl.textContent = srsDue > 0 ? `📅 ${srsDue} para repasar hoy` : '';
+  srsDueEl.style.display = srsDue > 0 ? '' : 'none';
+
+  document.getElementById('cumulativeBanner').style.display = 'none';
+  document.getElementById('cumulativeEnterBtn').style.display = '';
+
+  resetPracticeUiToDefaults();
+  resetOrder();
+  nextCard();
+  window.scrollTo({top:0});
+}
+
+document.getElementById('cumulativeEnterBtn').addEventListener('click', enterCumulativeMode);
+document.getElementById('cumulativeExitBtn').addEventListener('click', exitCumulativeMode);
+
 document.querySelectorAll('.lesson-card').forEach(btn=>{
   btn.addEventListener('click', ()=> loadLesson(btn.getAttribute('data-lesson')));
 });
+
+// Racha y badges de "para repasar" visibles desde la pantalla de seleccion
+// de leccion, antes incluso de elegir una -- no hace falta entrar a
+// estudiar para verlos.
+renderStreakBadge();
+renderLessonDueBadges();
 
 document.getElementById('changeLessonBtn').addEventListener('click', ()=>{
   document.getElementById('appShell').style.display = 'none';
   document.getElementById('lessonPicker').style.display = '';
   document.getElementById('menuPanel').classList.remove('menu-open');
+  renderStreakBadge();
+  renderLessonDueBadges();
   window.scrollTo({top:0});
 });
