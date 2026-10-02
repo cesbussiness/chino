@@ -572,6 +572,25 @@ avanza). Suite completa de regresion (las 5 lecciones, los 8 modos de
 practica) sin errores de consola y sin overflow horizontal en mobile/
 tablet/desktop, en el build normal y en el `--protect`.
 
+## Regla de estilo: tuteo, español latinoamericano neutro
+
+A pedido del usuario: **nunca usar voseo** (vos/tocá/escribí/ordená/podés)
+**ni español de España** (vosotros, móvil como "celular", ordenador) en
+ningún texto de la interfaz — usar tuteo (tú/toca/escribe/ordena/puedes) en
+un español latinoamericano neutro (tipo venezolano). Se auditó todo
+`src/index.html` y `src/app.js` (texto de interfaz, no comentarios de
+código) buscando formas de voseo y se corrigieron las que aparecieron:
+"Elegi" → "Elige", "podes" → "puedes" (x2), "tocalo"/"guardalo" → "tócalo"/
+"guárdalo", "Ordená"/"Tocá" → "Ordena"/"Toca" (en las 4 pestañas de
+Diálogo), "seguí ajustando" → "sigue ajustando" (feedback de Examen y
+Diálogo), y "Celular / teléfono móvil" → "Celular" (más neutro, "móvil"
+es mas de España). Metodologia reusable para la proxima vez que se agregue
+texto nuevo: buscar formas verbales que terminan en á/é/í seguidas de
+limite de palabra (`[a-zñ]á\b|[a-zñ]é\b|[a-zñ]í\b`, filtrando pinyin a
+mano) mas una lista de verbos irregulares comunes del voseo sin tilde
+(podes/tenes/queres en vez de puedes/tienes/quieres — son formas de raiz
+distinta, no solo falta de tilde).
+
 ## Estado actual
 
 - **Separado en `src/`**: `src/index.html` + `src/style.css` + `src/app.js`
