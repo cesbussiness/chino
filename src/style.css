@@ -349,6 +349,18 @@
     margin-top:6px;
   }
 
+  .part-label{
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--gris);
+    margin:18px 0 8px;
+    padding-bottom:4px;
+    border-bottom:1px dashed var(--borde);
+  }
+  .part-label:first-child{
+    margin-top:0;
+  }
+
   .section-title{
     font-size:1.02rem;
     font-weight:700;
