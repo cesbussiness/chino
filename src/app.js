@@ -1988,10 +1988,24 @@ const EXAM_PHASE_LABELS = {
   tone: '🎵 Selección múltiple: tono',
 };
 
-function buildExamItems(pool){
+// "Ordena la oracion" arma oraciones con vocabulario de ESTA leccion y de
+// las anteriores (ver SENTENCE_BANK_LECCIONx mas abajo) — por diseño puede
+// incluir palabras que no estan en ninguna parte individual de la leccion
+// actual. Por eso solo se incluye en el examen de la leccion completa
+// (nivel 0, "Todo mezclado", sin seccion especifica ni repaso de fallos):
+// en el examen de una parte especifica (10 palabras) no tendria sentido
+// pedir oraciones armadas con palabras de otras partes que todavia no se
+// practicaron en esa ronda.
+function isWholeLessonExamScope(){
+  return !reviewMissedMode && currentSection === 'ALL' && currentLevel === 0;
+}
+
+function buildExamItems(pool, includeSentences){
   const items = [];
-  const sentenceBank = (LESSONS[currentLessonId] && LESSONS[currentLessonId].sentenceBank) || [];
-  shuffle(sentenceBank.map((s,i)=>i)).forEach(i => items.push({type:'sentence', sentenceIdx: i}));
+  if(includeSentences){
+    const sentenceBank = (LESSONS[currentLessonId] && LESSONS[currentLessonId].sentenceBank) || [];
+    shuffle(sentenceBank.map((s,i)=>i)).forEach(i => items.push({type:'sentence', sentenceIdx: i}));
+  }
   shuffle([...pool]).forEach(idx => items.push({type:'mc', termIdx: idx}));
   if(pool.length >= 2){
     const matchPool = shuffle([...pool]);
@@ -2025,7 +2039,7 @@ function startExam(){
     return;
   }
   document.getElementById('examEmpty').style.display = 'none';
-  examItems = buildExamItems(pool);
+  examItems = buildExamItems(pool, isWholeLessonExamScope());
   examPos = 0;
   showExamItem();
 }
