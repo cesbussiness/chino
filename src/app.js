@@ -5,6 +5,84 @@ const TONE_GAME_DATA = {"上海":{"correct":"shàng hǎi","distractors":["shàng
 const CHAR_OVERRIDES = {"玩具乐器":{"乐":["yuè","music (in this word — NOT the usual 'lè' happy)"]},"出差":{"差":["chāi","to send on a mission (in this word — business trip)"]},"行李":{"行":["xíng","to walk / to do (in this word — luggage)"]},"行李转盘":{"行":["xíng","to walk / to do (in this word — luggage)"]}};
 function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
+// Palabras gramaticales: no tienen un significado traducible de forma
+// directa (partículas, clasificadores) y por eso, en vez de una
+// traduccion fija, se les muestra una explicacion de uso + ejemplos.
+// Se usa tanto en el Glosario (ver renderGlossary) como en las Tarjetas,
+// Adivina, Escribe el pinyin y el modal de detalle de palabra, porque
+// todos esos pasan por renderWordBreakdown.
+const GRAMMAR_NOTES = {
+  "了": {
+    explain: "No tiene una sola traduccion. Marca que una accion ya termino, o que algo cambio respecto a como estaba antes.",
+    examples: [
+      { hz: "我吃了", py: "wǒ chī le", en: "Ya comi (accion completada)" },
+      { hz: "天黑了", py: "tiān hēi le", en: "Ya oscurecio (cambio de estado)" }
+    ]
+  },
+  "的": {
+    explain: "Conecta un sustantivo o adjetivo con lo que describe o posee, parecido al \"'s\" del ingles. No se traduce por si sola.",
+    examples: [
+      { hz: "我的书", py: "wǒ de shū", en: "Mi libro (literalmente \"el libro de mi\")" },
+      { hz: "红色的车", py: "hóngsè de chē", en: "El carro rojo (conecta el adjetivo con el sustantivo)" }
+    ]
+  },
+  "吗": {
+    explain: "Se agrega al final de una oracion afirmativa para convertirla en una pregunta de si o no, sin cambiar el orden de las palabras.",
+    examples: [
+      { hz: "你是学生吗？", py: "nǐ shì xuéshēng ma?", en: "¿Eres estudiante?" },
+      { hz: "你好吗？", py: "nǐ hǎo ma?", en: "¿Como estas? (literalmente \"¿bien?\")" }
+    ]
+  },
+  "呢": {
+    explain: "Se usa para preguntar \"¿y...?\" sobre algo que ya se menciono, o para preguntar donde esta algo o alguien.",
+    examples: [
+      { hz: "我很好，你呢？", py: "wǒ hěn hǎo, nǐ ne?", en: "Estoy bien, ¿y tu?" },
+      { hz: "我的手机呢？", py: "wǒ de shǒujī ne?", en: "¿Donde esta mi telefono?" }
+    ]
+  },
+  "吧": {
+    explain: "Suaviza una orden o una propuesta: convierte un mandato directo en algo mas parecido a \"vamos a...\" o \"...¿te parece?\".",
+    examples: [
+      { hz: "我们走吧", py: "wǒmen zǒu ba", en: "Vamonos (sugerencia, no una orden)" },
+      { hz: "好吧", py: "hǎo ba", en: "Esta bien, de acuerdo (aceptar algo sin mucho entusiasmo)" }
+    ]
+  },
+  "啦": {
+    explain: "Mezcla el sonido de 了 con un tono exclamativo o cariñoso. Se usa mucho al hablar y casi nunca tiene una traduccion propia.",
+    examples: [
+      { hz: "知道啦！", py: "zhīdào la!", en: "¡Ya se! (con un poco de impaciencia cariñosa)" },
+      { hz: "来啦！", py: "lái la!", en: "¡Ya voy!" }
+    ]
+  },
+  "还是": {
+    explain: "No tiene una sola traduccion. Entre dos opciones dentro de una pregunta significa \"o\" (A还是B = ¿A o B?). Fuera de una pregunta, puede significar \"mejor\" cuando alguien cambia de opinion. Esto es distinto de 或者, que tambien es \"o\" pero se usa en afirmaciones, no en preguntas de opcion.",
+    examples: [
+      { hz: "你要咖啡还是茶？", py: "nǐ yào kāfēi háishi chá?", en: "¿Quieres cafe o te? (pregunta de opcion)" },
+      { hz: "我们还是坐地铁吧", py: "wǒmen háishi zuò dìtiě ba", en: "Mejor tomamos el metro (cambio de opinion, no es pregunta)" }
+    ]
+  },
+  "个": {
+    explain: "No se traduce. Es un clasificador: en chino, para contar algo hay que poner una palabra clasificadora entre el numero y el sustantivo. 个 es el mas general, y sirve para casi cualquier cosa cuando no sabes cual usar.",
+    examples: [
+      { hz: "一个人", py: "yí ge rén", en: "Una persona (numero + clasificador + sustantivo)" },
+      { hz: "这个", py: "zhège", en: "Este / esta (clasificador combinado con \"este\")" }
+    ]
+  }
+};
+
+function renderGrammarNote(hz){
+  const note = GRAMMAR_NOTES[hz];
+  if(!note) return '';
+  const exampleRows = note.examples.map(ex =>
+    `<div class="grammar-example"><span class="hz">${ex.hz}</span><span class="py">${ex.py}</span><span class="en">${ex.en}</span></div>`
+  ).join('');
+  return `<div class="char-breakdown grammar-note">
+    <div class="cb-label">📘 Palabra gramatical — no tiene una traduccion directa</div>
+    <p class="grammar-explain">${note.explain}</p>
+    ${exampleRows}
+  </div>`;
+}
+
 function renderRadicalBreakdown(ch){
   const radicals = CHAR_RADICALS[ch] || [];
   if(!radicals.length) return '';
@@ -60,8 +138,10 @@ function renderCharBreakdown(hz, parentPy, parentEn){
 // ya que renderCharBreakdown se salta las palabras de 1 caracter). Mismo
 // criterio que ya usaba el modal de detalle de palabra (ver openWordDetail).
 function renderWordBreakdown(hz, py, en){
+  const grammarHtml = renderGrammarNote(hz);
   const chars = [...hz].filter(ch => /[一-鿿]/.test(ch));
-  return chars.length > 1 ? renderCharBreakdown(hz, py, en) : renderRadicalBreakdown(hz);
+  const breakdownHtml = chars.length > 1 ? renderCharBreakdown(hz, py, en) : renderRadicalBreakdown(hz);
+  return grammarHtml + breakdownHtml;
 }
 
 const VOCAB_APLICACIONES_CHINAS = {"data":{"intro_ui":[{"h":"上海","p":"Shànghǎi","e":"Shanghai (current location shown in the app)"},{"h":"搜索","p":"sōusuǒ","e":"search / to search (search button)"}],"waimai_top":[{"h":"外卖","p":"wàimài","e":"Food Delivery (section title, top-left)"},{"h":"欢迎来到上海","p":"huānyíng lái dào Shànghǎi","e":"Welcome to Shanghai (banner greeting)"},{"h":"定位服务未开启","p":"dìngwèi fúwù wèi kāiqǐ","e":"Location service not enabled"},{"h":"去开启","p":"qù kāiqǐ","e":"Go enable (button to turn on location)"},{"h":"订单","p":"dìngdān","e":"Orders — bottom-nav tab"},{"h":"更多","p":"gèng duō","e":"More — bottom-nav tab"},{"h":"神券","p":"shén quàn","e":"\"Magic Coupons\" — bottom-nav tab (special discount coupons)"}],"waimai_cat1":[{"h":"商圈美食","p":"shāngquān měishí","e":"Business-District Food"},{"h":"汉堡披萨","p":"hànbǎo pīsà","e":"Burgers & Pizza"},{"h":"送奶茶","p":"sòng nǎichá","e":"Milk Tea Delivery"},{"h":"每日大牌","p":"měirì dàpái","e":"Daily Brand Deals"},{"h":"新店特惠","p":"xīndiàn tèhuì","e":"New Store Special Offers"},{"h":"米粉面馆","p":"mǐfěn miànguǎn","e":"Rice-Noodle & Noodle Shops"},{"h":"快食简餐","p":"kuàishí jiǎncān","e":"Fast / Simple Meals"},{"h":"员工好饭","p":"yuángōng hǎo fàn","e":"Good Staff Meals"},{"h":"面包蛋糕","p":"miànbāo dàngāo","e":"Bread & Cakes"},{"h":"全部","p":"quánbù","e":"All (see all categories)"}],"waimai_cat2":[{"h":"美食","p":"měishí","e":"Food"},{"h":"甜点饮品","p":"tiándiǎn yǐnpǐn","e":"Desserts & Drinks"},{"h":"超市便利","p":"chāoshì biànlì","e":"Supermarket & Convenience"},{"h":"蔬菜水果","p":"shūcài shuǐguǒ","e":"Vegetables & Fruit"},{"h":"看病买药","p":"kànbìng mǎiyào","e":"See a Doctor & Buy Medicine"},{"h":"拼好饭","p":"pīn hǎo fàn","e":"\"Pinhaofan\" — combined/shared-order discount meals"},{"h":"午餐","p":"wǔcān","e":"Lunch"},{"h":"浪漫鲜花","p":"làngmàn xiānhuā","e":"Romantic Flowers"},{"h":"天天津贴","p":"tiāntiān jīntiē","e":"Daily Subsidy / Allowance (discount credit)"},{"h":"跑腿","p":"pǎotuǐ","e":"Errand Running"}],"waimai_promo":[{"h":"神抢手","p":"shén qiǎngshǒu","e":"\"Hot Picks\" — popular-deals section"},{"h":"品质精选省心价","p":"pǐnzhì jīngxuǎn shěngxīn jià","e":"Quality-selected, worry-free price (slogan)"},{"h":"老朋友回归礼","p":"lǎo péngyou huíguī lǐ","e":"Returning-Customer Welcome-Back Gift"},{"h":"满68可用","p":"mǎn 68 kěyòng","e":"Usable when order total ≥ ¥68"},{"h":"去使用","p":"qù shǐyòng","e":"Go use (apply the coupon)"},{"h":"15分钟","p":"shíwǔ fēnzhōng","e":"15 minutes (fast-delivery filter)"},{"h":"品质必点","p":"pǐnzhì bìdiǎn","e":"Quality Must-Order (filter)"},{"h":"堂食店","p":"táng shí diàn","e":"Dine-in Restaurant (filter)"},{"h":"神券商家","p":"shén quàn shāngjiā","e":"Merchants with Special Coupons (filter)"}],"waimai_card":[{"h":"汉堡王","p":"Hànbǎo Wáng","e":"Burger King (restaurant name)"},{"h":"分","p":"fēn","e":"points / rating score (e.g. 4.4分 = rating 4.4)"},{"h":"月售","p":"yuè shòu","e":"Monthly sales (e.g. 月售2000+ = 2000+ sold/month)"},{"h":"人均","p":"rén jūn","e":"Average spend per person"},{"h":"起送","p":"qǐ sòng","e":"Minimum order for delivery"},{"h":"配送","p":"pèisòng","e":"Delivery (fee)"},{"h":"美团专送","p":"Měituán zhuānsòng","e":"Meituan Exclusive Delivery (Meituan's own couriers)"},{"h":"排行榜","p":"páihángbǎng","e":"Ranking list / leaderboard"},{"h":"第5名","p":"dì wǔ míng","e":"Ranked #5"}],"jd_profile_top":[{"h":"语言","p":"yǔyán","e":"Language"},{"h":"客户服务","p":"kèhù fúwù","e":"Customer Service"},{"h":"地址","p":"dìzhǐ","e":"Address"},{"h":"设置","p":"shèzhì","e":"Settings"}],"jd_profile_order":[{"h":"待付款","p":"dài fùkuǎn","e":"Awaiting payment"},{"h":"待收货/使用","p":"dài shōuhuò/shǐyòng","e":"Awaiting receipt / use"},{"h":"待评价","p":"dài píngjià","e":"Awaiting review"},{"h":"退换/售后","p":"tuìhuàn/shòuhòu","e":"Return-exchange / after-sales"}],"jd_profile_service":[{"h":"常见问题","p":"chángjiàn wèntí","e":"FAQ (frequently asked questions)"},{"h":"物流中心","p":"wùliú zhōngxīn","e":"Logistics Center"},{"h":"问题反馈","p":"wèntí fǎnkuì","e":"Report a problem / feedback"},{"h":"邀请有礼","p":"yāoqǐng yǒulǐ","e":"Invite friends for a gift"}],"jd_bottomnav":[{"h":"首页","p":"shǒuyè","e":"Home — bottom-nav tab"},{"h":"分类","p":"fēnlèi","e":"Categories — bottom-nav tab"},{"h":"消息","p":"xiāoxi","e":"Messages — bottom-nav tab"},{"h":"购物车","p":"gòuwùchē","e":"Shopping Cart — bottom-nav tab"},{"h":"我的","p":"wǒ de","e":"Mine / My Profile — bottom-nav tab"}],"comun":[{"h":"搜索","p":"sōusuǒ","e":"Search button — appears at the top of both apps' search bar"},{"h":"消息","p":"xiāoxi","e":"Messages — bottom-nav tab in both apps, both show unread-count badges"},{"h":"购物车","p":"gòuwùchē","e":"Shopping Cart — bottom-nav tab in both apps"},{"h":"我的","p":"wǒ de","e":"Mine/Profile — bottom-nav tab in both apps"},{"h":"起送","p":"qǐsòng","e":"Minimum order amount required for delivery — used identically in both apps' store/delivery cards"},{"h":"去使用","p":"qù shǐyòng","e":"\"Go use\" — the call-to-action button to redeem a coupon, worded identically in both apps"},{"h":"折","p":"zhé","e":"\"...off\" discount character — e.g. 8折 = 20% off, 7.6折 = 24% off. Used constantly in both apps"},{"h":"券","p":"quàn","e":"Voucher/coupon character — appears in both apps (神券, 优惠券, 领券, 券包...)"},{"h":"满","p":"mǎn","e":"\"Once you reach/spend...\" character used in spend-threshold discounts (满68可用, 满99包邮...) — same pattern in both apps"}],"home_top_p1":[{"h":"上海","p":"Shànghǎi","e":"Shanghai — city/location selector at top-left"},{"h":"搜索","p":"sōusuǒ","e":"Search — yellow button next to the search bar"},{"h":"推荐","p":"tuījiàn","e":"Recommended — bottom-nav tab, the home feed"},{"h":"视频","p":"shìpín","e":"Video — bottom-nav tab"},{"h":"消息","p":"xiāoxi","e":"Messages — bottom-nav tab"},{"h":"购物车","p":"gòuwùchē","e":"Shopping cart — bottom-nav tab"},{"h":"我的","p":"wǒ de","e":"Mine / My Profile — bottom-nav tab"},{"h":"美团直播","p":"Měituán zhíbō","e":"Meituan Livestream — featured card"},{"h":"观看","p":"guānkàn","e":"watching / viewers (e.g. 4.14万观看 = 41,400 watching)"},{"h":"特价团","p":"tèjià tuán","e":"Special-Price Group Deals — featured card"}],"home_top_p2":[{"h":"天天有低价","p":"tiāntiān yǒu dījià","e":"Low prices every day (slogan under 特价团)"},{"h":"团购","p":"tuángòu","e":"Group buying — deal-type label on a promo card"},{"h":"折","p":"zhé","e":"discount / \"off\" (e.g. 7.6折 = 24% off, i.e. pay 76%)"},{"h":"直播中","p":"zhíbō zhōng","e":"Live now — badge on a livestreaming card"}],"home_page1_p1":[{"h":"景点游玩","p":"jǐngdiǎn yóuwán","e":"Attractions & Sightseeing"},{"h":"蔬菜水果","p":"shūcài shuǐguǒ","e":"Vegetables & Fruit"},{"h":"KTV","p":"KTV","e":"Karaoke (KTV)"},{"h":"洗浴汗蒸","p":"xǐyù hànzhēng","e":"Bathhouse & Sauna"},{"h":"医学美容","p":"yīxué měiróng","e":"Medical Cosmetics / Aesthetic Medicine"},{"h":"生活服务","p":"shēnghuó fúwù","e":"Life Services (utilities, repairs, etc.)"},{"h":"商场购物","p":"shāngchǎng gòuwù","e":"Mall Shopping"},{"h":"民宿公寓","p":"mínsù gōngyù","e":"Homestays & Apartments"},{"h":"浪漫鲜花","p":"làngmàn xiānhuā","e":"Romantic Flowers (flower delivery)"},{"h":"免费水果","p":"miǎnfèi shuǐguǒ","e":"Free Fruit (promo section)"}],"home_page1_p2":[{"h":"品质百货","p":"pǐnzhì bǎihuò","e":"Quality Goods / Department Store"},{"h":"旅游度假","p":"lǚyóu dùjià","e":"Travel & Vacation"},{"h":"游泳健身","p":"yóuyǒng jiànshēn","e":"Swimming & Fitness"},{"h":"医疗牙科","p":"yīliáo yákē","e":"Medical & Dental Care"},{"h":"歪马送酒","p":"Wāimǎ sòngjiǔ","e":"\"Waima\" Alcohol Delivery (brand name)"}],"home_page2_p1":[{"h":"外卖","p":"wàimài","e":"Food/Takeout Delivery"},{"h":"团购","p":"tuángòu","e":"Group Buying"},{"h":"酒店民宿","p":"jiǔdiàn mínsù","e":"Hotels & Homestays"},{"h":"闪购","p":"shǎngòu","e":"Flash Purchase / Instant Retail"},{"h":"看病买药","p":"kànbìng mǎiyào","e":"See a Doctor & Buy Medicine"},{"h":"小象超市","p":"Xiǎoxiàng chāoshì","e":"\"Xiaoxiang\" Supermarket (Meituan's grocery brand)"},{"h":"美食","p":"měishí","e":"Food / Cuisine"},{"h":"休闲玩乐","p":"xiūxián wánlè","e":"Leisure & Entertainment"},{"h":"丽人美发","p":"lìrén měifà","e":"Beauty & Hair Salon"},{"h":"电影演出","p":"diànyǐng yǎnchū","e":"Movies & Shows"}],"home_page2_p2":[{"h":"打车","p":"dǎchē","e":"Ride-hailing / Call a car"},{"h":"机票火车票","p":"jīpiào huǒchēpiào","e":"Flight & Train Tickets"},{"h":"按摩足疗","p":"ànmó zúliáo","e":"Massage & Foot Spa"},{"h":"天天红包","p":"tiāntiān hóngbāo","e":"Daily Red Packet (cash coupon)"},{"h":"跑腿","p":"pǎotuǐ","e":"Errand Running service"}],"home_page3_p1":[{"h":"拍照妆造","p":"pāizhào zhuāngzào","e":"Photography & Makeup styling"},{"h":"台球","p":"táiqiú","e":"Billiards / Pool"},{"h":"宠物","p":"chǒngwù","e":"Pets"},{"h":"小说赚钱","p":"xiǎoshuō zhuànqián","e":"Novels / Earn money reading fiction"},{"h":"学习培训","p":"xuéxí péixùn","e":"Study & Training courses"},{"h":"员工餐","p":"yuángōng cān","e":"Staff Meal (deals for workers)"},{"h":"游戏中心","p":"yóuxì zhōngxīn","e":"Game Center"},{"h":"借钱","p":"jièqián","e":"Borrow Money / Loans"},{"h":"养车用车","p":"yǎngchē yòngchē","e":"Car Maintenance & Use"},{"h":"地图找店","p":"dìtú zhǎo diàn","e":"Find Stores on Map"}],"home_page3_p2":[{"h":"家居装修","p":"jiājū zhuāngxiū","e":"Home Renovation"},{"h":"亲子乐园","p":"qīnzǐ lèyuán","e":"Parent-Child Playground"},{"h":"结婚母婴","p":"jiéhūn mǔyīng","e":"Wedding & Maternity/Baby"},{"h":"更多服务","p":"gèng duō fúwù","e":"More Services"}],"jd_cart_p1":[{"h":"购物车","p":"gòuwùchē","e":"Shopping Cart (page title)"},{"h":"挑点喜欢的装进购物车","p":"tiāo diǎn xǐhuan de zhuāng jìn gòuwùchē","e":"Pick some favorites into your cart (empty-cart message)"},{"h":"逛逛秒杀","p":"guàngguang miǎoshā","e":"Browse flash sales"},{"h":"去送礼物","p":"qù sòng lǐwù","e":"Go send a gift"},{"h":"推荐榜单","p":"tuījiàn bǎngdān","e":"Recommended rankings"},{"h":"新鲜榴莲","p":"xīnxiān liúlián","e":"Fresh durian"},{"h":"电子锁","p":"diànzǐ suǒ","e":"Electronic lock"},{"h":"显示器","p":"xiǎnshìqì","e":"Monitor (computer display)"},{"h":"灶具","p":"zàojù","e":"Stove / cooktop"},{"h":"香水","p":"xiāngshuǐ","e":"Perfume"}],"jd_cart_p2":[{"h":"预估","p":"yùgū","e":"Estimated (price)"},{"h":"人买过","p":"rén mǎiguò","e":"...people have bought this"},{"h":"恭喜你获得优惠福利","p":"gōngxǐ nǐ huòdé yōuhuì fúlì","e":"Congrats, you've received a discount benefit"},{"h":"超市新人礼","p":"chāoshì xīnrén lǐ","e":"Supermarket new-member gift"},{"h":"券包","p":"quàn bāo","e":"Coupon pack/bundle"},{"h":"快点来看看","p":"kuài diǎn lái kànkan","e":"Come take a look, quick!"}],"jd_profile_mid_p1":[{"h":"满¥99宅配上门","p":"mǎn 99 yuán zháipèi shàngmén","e":"Free home delivery for orders over ¥99"},{"h":"铜牌会员","p":"tóngpái huìyuán","e":"Bronze-tier Member"},{"h":"去实名","p":"qù shímíng","e":"Verify real-name identity"},{"h":"优惠券","p":"yōuhuìquàn","e":"Coupons"},{"h":"购物返豆","p":"gòuwù fǎn dòu","e":"Shopping cashback \"beans\" (JD's loyalty points)"},{"h":"京豆","p":"jīngdòu","e":"\"JD Beans\" — JD's virtual loyalty currency"},{"h":"红包","p":"hóngbāo","e":"Red packet (cash coupon)"},{"h":"我的钱包","p":"wǒ de qiánbāo","e":"My Wallet"},{"h":"商品收藏","p":"shāngpǐn shōucáng","e":"Favorited products"},{"h":"店铺关注","p":"diànpù guānzhù","e":"Followed shops"}],"jd_profile_mid_p2":[{"h":"浏览记录","p":"liúlǎn jìlù","e":"Browsing history"}],"jd_msg_p1":[{"h":"消息","p":"xiāoxi","e":"Messages (page title)"},{"h":"清除未读","p":"qīngchú wèidú","e":"Clear unread"},{"h":"会话","p":"huìhuà","e":"Conversations"},{"h":"物流","p":"wùliú","e":"Logistics (shipment updates)"},{"h":"提醒","p":"tíxǐng","e":"Reminders"},{"h":"优惠","p":"yōuhuì","e":"Promotions/discounts"},{"h":"互动","p":"hùdòng","e":"Interactions (social notifications)"},{"h":"京东客服","p":"Jīngdōng kèfú","e":"JD Customer Service"},{"h":"官方","p":"guānfāng","e":"Official (verified account tag)"},{"h":"京言AI导购","p":"Jīngyán AI dǎogòu","e":"\"Jingyan\" — JD's AI shopping-guide assistant"}],"jd_msg_p2":[{"h":"没有更多消息了","p":"méiyǒu gèng duō xiāoxi le","e":"No more messages"}],"jd_category_p1":[{"h":"分类","p":"fēnlèi","e":"Categories (page title)"},{"h":"玩具乐器","p":"wánjù yuèqì","e":"Toys & Musical Instruments"},{"h":"食品酒饮","p":"shípǐn jiǔ yǐn","e":"Food, Wine & Beverages"},{"h":"数码","p":"shùmǎ","e":"Digital / Electronics"},{"h":"汽摩生活","p":"qìmó shēnghuó","e":"Auto & Motorcycle Life"},{"h":"拍卖","p":"pāimài","e":"Auction"},{"h":"全球购","p":"quánqiú gòu","e":"Global Shopping (cross-border)"},{"h":"粮油调味","p":"liángyóu tiáowèi","e":"Grain, Oil & Seasoning"},{"h":"母婴童装","p":"mǔyīng tóngzhuāng","e":"Maternity, Baby & Kids Clothing"},{"h":"奢侈品","p":"shēchǐpǐn","e":"Luxury goods"}],"jd_category_p2":[{"h":"内衣配饰","p":"nèiyī pèishì","e":"Underwear & Accessories"},{"h":"元器件","p":"yuánqìjiàn","e":"Electronic Components"},{"h":"家具家装","p":"jiājù jiāzhuāng","e":"Furniture & Home Improvement"},{"h":"保险","p":"bǎoxiǎn","e":"Insurance"},{"h":"农资园艺","p":"nóngzī yuányì","e":"Agricultural Supplies & Gardening"},{"h":"热门推荐","p":"rèmén tuījiàn","e":"Hot Recommendations"}]},"titles":{"intro_ui":"Elementos comunes de la interfaz","waimai_top":"外卖 (Delivery) — barra superior y avisos","waimai_cat1":"外卖 — categorías (vista A)","waimai_cat2":"外卖 — categorías (vista B)","waimai_promo":"外卖 — promociones y filtros","waimai_card":"外卖 — leyendo una tarjeta de restaurante","jd_profile_top":"我的 — iconos superiores","jd_profile_order":"我的 — estado de pedidos","jd_profile_service":"我的 — servicios de ayuda","jd_bottomnav":"Barra de navegación inferior (global)","comun":"Patrones y palabras en común entre ambas apps","home_top_p1":"Pantalla principal — barra superior y navegación inferior — Parte 1/2","home_top_p2":"Pantalla principal — barra superior y navegación inferior — Parte 2/2","home_page1_p1":"Página 1 del menú de íconos (首页) — Parte 1/2","home_page1_p2":"Página 1 del menú de íconos (首页) — Parte 2/2","home_page2_p1":"Página 2 del menú de íconos (首页) — Parte 1/2","home_page2_p2":"Página 2 del menú de íconos (首页) — Parte 2/2","home_page3_p1":"Página 3 del menú de íconos (首页) — Parte 1/2","home_page3_p2":"Página 3 del menú de íconos (首页) — Parte 2/2","jd_cart_p1":"购物车 (Carrito de compras) — Parte 1/2","jd_cart_p2":"购物车 (Carrito de compras) — Parte 2/2","jd_profile_mid_p1":"我的 — cuenta y beneficios — Parte 1/2","jd_profile_mid_p2":"我的 — cuenta y beneficios — Parte 2/2","jd_msg_p1":"消息 (Mensajes) — Parte 1/2","jd_msg_p2":"消息 (Mensajes) — Parte 2/2","jd_category_p1":"分类 (Categorías) — Parte 1/2","jd_category_p2":"分类 (Categorías) — Parte 2/2"}};
@@ -728,13 +808,23 @@ function renderGlossary(filter=''){
     const iconHtml = iconSrc
       ? `<img class="app-icon app-icon-sm" src="${iconSrc}" alt="icono ${t.h}">`
       : `<div class="app-icon app-icon-sm app-icon-placeholder">${t.h.slice(0,1)}</div>`;
+    // Palabras de gramatica (sin significado traducible directo, ver
+    // GRAMMAR_NOTES): se marcan con una insignia y el hanzi se vuelve
+    // clickeable para abrir la explicacion de uso + ejemplos en el modal
+    // de detalle (reusa chip-clickable -> openWordDetail -> renderWordBreakdown).
+    const isGrammar = !!GRAMMAR_NOTES[t.h];
+    const hzHtml = isGrammar
+      ? `<span class="hz chip-clickable" data-word-detail="${escAttr(t.h)}" data-py="${escAttr(t.p)}" data-en="${escAttr(t.e)}">${t.h}</span>`
+      : `<span class="hz">${t.h}</span>`;
+    const grammarBadge = isGrammar ? '<span class="tag tag-grammar">📘 Gramática</span>' : '';
     return `
     <div class="glossary-row">
       ${iconHtml}
-      <span class="hz">${t.h}</span>
+      ${hzHtml}
       <button class="speak-btn" data-hz="${t.h.replace(/"/g,'&quot;')}">🔊</button>
       <span class="glossary-meta">
         <span class="tag">${t.section.split('—')[0].trim()}</span>
+        ${grammarBadge}
         <span class="py">${t.p}</span>
       </span>
       <span class="en">${t.e}</span>

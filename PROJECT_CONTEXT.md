@@ -572,6 +572,92 @@ avanza). Suite completa de regresion (las 5 lecciones, los 8 modos de
 practica) sin errores de consola y sin overflow horizontal en mobile/
 tablet/desktop, en el build normal y en el `--protect`.
 
+## Lecciones en partes de 10 palabras + palabras de gramática (glosario/tarjetas)
+
+El usuario pidió dos cosas en la misma tanda: (A) que aprender una lección
+completa de una sola vez fuera menos abrumador, partiendo cada lección en
+trozos de máximo 10 palabras — con todas las dinámicas (Tarjetas, Adivina,
+Emparejar x2, Tonos, Escribe el pinyin, Escritura, Examen) acotadas a cada
+trozo, pero sin perder la posibilidad de examinarse de la lección completa;
+y (B) que palabras sin un significado traducible (gramaticales, como 还是)
+se expliquen con uso + ejemplos en vez de una traducción plana, tanto en el
+Glosario como en las Tarjetas.
+
+**(A) Partes de 10 palabras — por qué no hizo falta ningún mecanismo nuevo**:
+el dropdown "sección específica" (`#sectionSelect` / `populateSectionSelect()`)
+y `getPoolIndices()`/`resolveSections()` ya dejaban practicar/examinar
+cualquier sección individual de `VOCAB.data`, sin importar su tamaño. Todo el
+trabajo fue de **datos**, no de mecanismo nuevo:
+
+- **Lecciones 1-3** (listas planas de vocabulario): su única sección se
+  partió en trozos secuenciales de 10 palabras (el último trozo se queda con
+  el resto, sin rebalancear a mano) — Lección 1: 59→6 partes, Lección 2:
+  39→4 partes, Lección 3: 22→3 partes. Cada parte se promovió a su propio
+  botón de nivel (`LEVELMAP_LECCIONx`/`levelLabels`), y el nivel 0
+  "🔀 Todo mezclado" sigue cubriendo la lección entera — por eso el examen de
+  "la totalidad de la lección" sigue existiendo sin tocar nada del Examen
+  (`buildExamItems` ya consume `getPoolIndices(currentLevel)`, que se achica
+  solo al elegir un nivel-parte, y vuelve a ser la lección completa en nivel 0).
+- **Lección 4** recibió el mismo tratamiento (8 partes: Llegada 55→6 partes,
+  Salida 18→2 partes) pero conservando el relato llegada/salida en las
+  etiquetas de nivel ("① Llegada - Parte 1/6" ... "② Salida - Parte 2/2") en
+  vez de aplanarlo — no tiene capturas de pantalla que la aten a su
+  estructura actual (al revés de "Aplicaciones Chinas"), así que no había
+  motivo para no partirla igual que 1-3.
+- **"Aplicaciones Chinas"** es distinta a propósito: sus 3 niveles temáticos
+  están atados a capturas de pantalla reales de la app (no son una lista
+  plana), así que partirlos habría roto esa referencia visual. Se le
+  preguntó directamente al usuario (ver decisión abajo) y se optó por
+  **mantener los 3 niveles sin cambios**, partiendo solo internamente las 8
+  secciones que superaban 10 palabras (`home_top`, `home_page1/2/3`,
+  `jd_cart`, `jd_profile_mid`, `jd_msg`, `jd_category` → cada una en
+  `_p1`/`_p2`), accesibles desde el dropdown de sección específica y
+  sumadas al pool del nivel temático al que ya pertenecían
+  (`LEVELMAP_APLICACIONES_CHINAS`).
+- **`getIconB64()` (lookup de iconos de capturas de pantalla)** usaba
+  comparación exacta (`===`) para las claves `home_top`/`jd_msg` (entre
+  otras) — se cambió a `.startsWith(...)` ANTES de partir esas secciones,
+  porque si no, los iconos de esas palabras se habrían roto en silencio al
+  pasar a `home_top_p1`/`home_top_p2`/etc. (`waimai_top`/`jd_bottomnav` no
+  hizo falta tocarlas porque nunca superaron 10 palabras).
+- En `src/index.html`, cada `<div class="grid-cards" data-section="...">`
+  (que antes apuntaba a una sola sección grande) se reemplazó por N divs,
+  uno por parte, cada uno con una etiqueta `.part-label` ("Parte X de Y")
+  arriba — `renderLessonGridCards()` ya itera genéricamente sobre todos los
+  `.grid-cards` de la lección, así que no necesitó ningún cambio de JS.
+
+**(B) Palabras de gramática (`GRAMMAR_NOTES`)**: se armó un diccionario nuevo
+(`GRAMMAR_NOTES`, junto a `CHAR_OVERRIDES`) con 8 palabras que no tienen una
+traducción fija — partículas y el clasificador general: 了, 的, 吗, 呢, 吧,
+啦, 还是 (el ejemplo que dio el usuario — significa "o" en preguntas de
+opción, A还是B, pero "mejor"/cambio de opinión fuera de pregunta, y se
+distingue de 或者 que es "o" en afirmaciones) y 个. Cada entrada tiene una
+explicación de uso corta + 2 oraciones de ejemplo (hanzi/pinyin/traducción).
+No se tocaron 会/还/或者 porque sí tienen un significado propio traducible
+("poder/saber", "todavía", "o") y no encajan en el pedido.
+
+- `renderWordBreakdown()` (ya reusada por Tarjetas, Adivina, Escribe el
+  pinyin y el modal de detalle de palabra) ahora antepone
+  `renderGrammarNote(hz)` antes del desglose de caracteres/radical de
+  siempre — por eso la explicación aparece automáticamente en los 4 lugares
+  sin tocar cada uno por separado.
+- `renderGlossary()` marca cada palabra de `GRAMMAR_NOTES` con una insignia
+  "📘 Gramática" y vuelve su hanzi clickeable (reusa el patrón
+  `chip-clickable` → `openWordDetail()` que ya usaban los chips de desglose
+  de caracteres), así que tocarla en el Glosario abre el mismo modal con la
+  explicación + ejemplos.
+
+Verificado con Playwright: los 7 niveles de Lección 1, los 9 de Lección 4 y
+los 4 (sin cambios) de "Aplicaciones Chinas"; que el pool de una parte
+cualquiera (ej. nivel 3 de Lección 1) tiene entre 1 y 10 palabras mientras
+que el nivel 0 sigue teniendo las 59/39/22/73/185 de siempre; que el dropdown
+de sección específica expone las claves nuevas (`home_top_p1`, `jd_msg_p1`,
+etc.) y que `getIconB64()` sigue encontrando el icono correcto para ellas;
+que buscar 吧 o 还是 en el Glosario muestra la insignia y que tocar el hanzi
+abre el modal con la explicación + al menos un ejemplo. Suite completa de
+regresión (smoke de las 5 lecciones/8 modos, overflow en mobile/tablet/
+desktop) sin errores de consola, en el build normal y en el `--protect`.
+
 ## Regla de estilo: tuteo, español latinoamericano neutro
 
 A pedido del usuario: **nunca usar voseo** (vos/tocá/escribí/ordená/podés)

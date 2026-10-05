@@ -554,6 +554,14 @@
     border-radius:6px;
     white-space:normal;
   }
+  .glossary-row .tag-grammar{
+    background:#eaf3ff;
+    color:#1a4d8f;
+  }
+  .glossary-row .hz.chip-clickable{
+    text-decoration:underline dotted;
+    text-decoration-color:var(--azul);
+  }
   @media (min-width:901px){
     .glossary-row{
       display:flex;
@@ -1227,6 +1235,30 @@
     font-weight:600;
     margin-right:3px;
   }
+
+  .grammar-note{
+    text-align:left;
+  }
+  .grammar-note .grammar-explain{
+    font-size:.85rem;
+    color:var(--negro);
+    margin:0 0 8px;
+    line-height:1.45;
+  }
+  .grammar-example{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:4px 8px;
+    background:#f4f4f4;
+    border-radius:8px;
+    padding:6px 9px;
+    margin-bottom:6px;
+    font-size:.82rem;
+  }
+  .grammar-example .hz{font-weight:700;color:var(--negro);}
+  .grammar-example .py{color:var(--azul);font-style:normal;font-weight:600;}
+  .grammar-example .en{color:var(--gris);flex-basis:100%;}
 
   #missedBtn{
     border:2px solid var(--rojo);
