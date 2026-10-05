@@ -558,6 +558,10 @@
     background:#eaf3ff;
     color:#1a4d8f;
   }
+  .glossary-row .tag-due{
+    background:#fdeceb;
+    color:var(--rojo);
+  }
   .glossary-row .hz.chip-clickable{
     text-decoration:underline dotted;
     text-decoration-color:var(--azul);
@@ -955,7 +959,7 @@
     gap:10px;
     margin-bottom:8px;
   }
-  .level-switch, .mode-switch{
+  .mode-switch{
     display:flex;
     flex-wrap:nowrap;
     gap:8px;
@@ -964,17 +968,19 @@
     padding-bottom:4px;
   }
   /* Hay espacio de sobra en pantallas de escritorio: en vez de obligar a
-     hacer scroll horizontal para ver los botones de nivel/modo que no
-     entran en una sola fila (cada vez mas con las lecciones partidas en
-     varias partes), se dejan pasar a una segunda fila. */
+     hacer scroll horizontal para ver los botones de modo que no entran en
+     una sola fila, se dejan pasar a una segunda fila. El nivel/parte dejo
+     de ser una fila de botones (ver #levelSwitch, ahora un <select> con
+     <optgroup> -- un menu de verdad en vez de pastillas que crecen sin
+     limite con cada leccion partida en mas partes). */
   @media (min-width:901px){
-    .level-switch, .mode-switch{
+    .mode-switch{
       flex-wrap:wrap;
       overflow-x:visible;
       padding-bottom:0;
     }
   }
-  .level-switch button, .mode-switch button{
+  .mode-switch button{
     border:1px solid var(--borde);
     background:#fff;
     color:var(--negro);
@@ -985,10 +991,6 @@
     white-space:nowrap;
     flex-shrink:0;
     cursor:pointer;
-  }
-  .level-switch button.active{
-    background:var(--amarillo);
-    border-color:var(--amarillo-osc);
   }
   .mode-switch button.active{
     background:#222;
@@ -1290,11 +1292,19 @@
   .srs-due-text{
     align-self:flex-start;
     font-size:.8rem;
+    font-weight:700;
     color:#b45309;
     background:#fff3e0;
     border:1px solid #fcd9a8;
     padding:8px 14px;
     border-radius:20px;
+    cursor:pointer;
+  }
+  .srs-due-text:hover{background:#fde6c4;}
+  .srs-due-text.active-review{
+    background:#b45309;
+    color:#fff;
+    border-color:#b45309;
   }
 
   .match-stats{
@@ -1572,7 +1582,7 @@
     font-weight:600;
     color:#1a4d8f;
   }
-  #sectionSelect{
+  #sectionSelect, #levelSwitch{
     flex:1;
     min-width:200px;
     padding:8px 10px;

@@ -808,11 +808,9 @@
         <label class="section-select-label" for="sectionSelect">Seccion especifica (opcional, anula el nivel de abajo):</label>
         <select id="sectionSelect"></select>
       </div>
-      <div class="level-switch" id="levelSwitch">
-        <button data-level="1" class="active">① Comunes de los menus</button>
-        <button data-level="2">② Pantallas principales</button>
-        <button data-level="3">③ Submenus</button>
-        <button data-level="0">🔀 Todo mezclado</button>
+      <div class="section-switch" id="levelSwitchWrap">
+        <label class="section-select-label" for="levelSwitch">Nivel / parte:</label>
+        <select id="levelSwitch"></select>
       </div>
       <div class="mode-switch" id="modeSwitch">
         <button data-mode="cards" class="active">📇 Tarjetas de repaso</button>
@@ -825,7 +823,7 @@
         <button data-mode="exam">📝 Examen</button>
       </div>
       <button id="missedBtn" style="display:none;">📌 Repasar las que fallaste (<span id="missedCount">0</span>)</button>
-      <span class="srs-due-text" id="srsDueText" style="display:none;"></span>
+      <button class="srs-due-text" id="srsDueBtn" style="display:none;"></button>
     </div>
 
     <!-- Flashcard review mode -->

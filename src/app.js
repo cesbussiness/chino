@@ -793,6 +793,32 @@ function updateMissedButton(){
   btn.style.display = missedIndices.size > 0 ? 'inline-block' : 'none';
   btn.classList.toggle('active-review', reviewMissedMode);
 }
+
+// Palabras vencidas de repeticion espaciada (ver mas abajo, srsDueSet):
+// antes solo se mostraba un CONTEO ("N para repasar hoy"), sin forma de ver
+// cuales eran -- #srsDueBtn ahora es clickeable e, igual que #missedBtn,
+// filtra el pool de practica a solo esas palabras (en vez de solo
+// priorizarlas al frente de la cola, que es lo que ya hacia
+// srsPrioritizedQueue). Se excluyen entre si: activar uno apaga el otro.
+let reviewDueMode = false;
+function getDueIndices(){
+  const data = srsLoad();
+  const today = todayDayNumber();
+  const idxs = [];
+  ALL_TERMS.forEach((t,i)=>{
+    const lessonId = srsLessonIdFor(t);
+    const rec = (data[lessonId] || {})[t.h];
+    if(rec && rec.due <= today) idxs.push(i);
+  });
+  return idxs;
+}
+function updateDueButton(){
+  const btn = document.getElementById('srsDueBtn');
+  const count = srsDueCountForLesson(currentLessonId);
+  btn.textContent = count > 0 ? `📅 ${count} para repasar hoy` : '';
+  btn.style.display = count > 0 ? '' : 'none';
+  btn.classList.toggle('active-review', reviewDueMode);
+}
 function renderGlossary(filter=''){
   const f = filter.trim().toLowerCase();
   const list = ALL_TERMS.filter(t=>{
@@ -803,6 +829,11 @@ function renderGlossary(filter=''){
   // parar cualquier microfono que hubiera quedado abierto en una fila que
   // esta por desaparecer del DOM (ver resetAllRecordersIn)
   resetAllRecordersIn(glossaryList);
+  // Repeticion espaciada: antes solo se veia un CONTEO de cuantas palabras
+  // tocaba repasar, sin forma de saber cuales eran. Se carga una sola vez
+  // aca (no por fila) para marcar cada palabra vencida con una insignia.
+  const srsData = srsLoad();
+  const today = todayDayNumber();
   glossaryList.innerHTML = list.map(t=>{
     const iconSrc = getIconB64(t.sectionKey, t.h);
     const iconHtml = iconSrc
@@ -817,6 +848,8 @@ function renderGlossary(filter=''){
       ? `<span class="hz chip-clickable" data-word-detail="${escAttr(t.h)}" data-py="${escAttr(t.p)}" data-en="${escAttr(t.e)}">${t.h}</span>`
       : `<span class="hz">${t.h}</span>`;
     const grammarBadge = isGrammar ? '<span class="tag tag-grammar">📘 Gramática</span>' : '';
+    const dueRec = (srsData[srsLessonIdFor(t)] || {})[t.h];
+    const dueBadge = (dueRec && dueRec.due <= today) ? '<span class="tag tag-due">🔴 Repasar</span>' : '';
     return `
     <div class="glossary-row">
       ${iconHtml}
@@ -825,6 +858,7 @@ function renderGlossary(filter=''){
       <span class="glossary-meta">
         <span class="tag">${t.section.split('—')[0].trim()}</span>
         ${grammarBadge}
+        ${dueBadge}
         <span class="py">${t.p}</span>
       </span>
       <span class="en">${t.e}</span>
@@ -1048,6 +1082,9 @@ function getPoolIndices(level){
   if(reviewMissedMode){
     return Array.from(missedIndices);
   }
+  if(reviewDueMode){
+    return getDueIndices();
+  }
   const sections = resolveSections(level);
   const idxs = [];
   ALL_TERMS.forEach((t,i)=>{
@@ -1270,22 +1307,28 @@ function refreshCurrentMode(){
   else if(currentMode === 'exam'){ startExam(); }
 }
 
-document.getElementById('levelSwitch').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-level]');
-  if(!btn) return;
-  document.querySelectorAll('#levelSwitch button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentLevel = Number(btn.getAttribute('data-level'));
+document.getElementById('levelSwitch').addEventListener('change', (e)=>{
+  currentLevel = Number(e.target.value);
   currentSection = 'ALL';
   document.getElementById('sectionSelect').value = 'ALL';
   reviewMissedMode = false;
+  reviewDueMode = false;
   updateMissedButton();
+  updateDueButton();
   refreshCurrentMode();
 });
 
 document.getElementById('missedBtn').addEventListener('click', ()=>{
   reviewMissedMode = !reviewMissedMode;
+  if(reviewMissedMode){ reviewDueMode = false; updateDueButton(); }
   updateMissedButton();
+  refreshCurrentMode();
+});
+
+document.getElementById('srsDueBtn').addEventListener('click', ()=>{
+  reviewDueMode = !reviewDueMode;
+  if(reviewDueMode){ reviewMissedMode = false; updateMissedButton(); }
+  updateDueButton();
   refreshCurrentMode();
 });
 
@@ -1316,12 +1359,9 @@ document.getElementById('modeSwitch').addEventListener('click', (e)=>{
 document.getElementById('sectionSelect').addEventListener('change', (e)=>{
   currentSection = e.target.value;
   reviewMissedMode = false;
+  reviewDueMode = false;
   updateMissedButton();
-  // si se elige una seccion especifica, ningun boton de nivel manda de verdad
-  // (se restaura el que corresponde a currentLevel si se vuelve a "ALL")
-  document.querySelectorAll('#levelSwitch button').forEach(b=>{
-    b.classList.toggle('active', currentSection === 'ALL' && Number(b.getAttribute('data-level')) === currentLevel);
-  });
+  updateDueButton();
   refreshCurrentMode();
 });
 
@@ -1997,7 +2037,7 @@ const EXAM_PHASE_LABELS = {
 // pedir oraciones armadas con palabras de otras partes que todavia no se
 // practicaron en esa ronda.
 function isWholeLessonExamScope(){
-  return !reviewMissedMode && currentSection === 'ALL' && currentLevel === 0;
+  return !reviewMissedMode && !reviewDueMode && currentSection === 'ALL' && currentLevel === 0;
 }
 
 function buildExamItems(pool, includeSentences){
@@ -2474,9 +2514,8 @@ function renderDialoguePanel(lessonId){
 // "repasar falladas" pendiente de la leccion anterior).
 // ---------------------------------------------------------------
 function resetPracticeUiToDefaults(){
-  document.querySelectorAll('#levelSwitch button').forEach(b=>{
-    b.classList.toggle('active', Number(b.getAttribute('data-level')) === 1);
-  });
+  // el nivel/parte por defecto ya lo deja listo rebuildLevelSwitch(lesson, 1),
+  // llamado justo antes en cada uno de los 3 lugares que llaman a esta funcion.
   document.querySelectorAll('#modeSwitch button').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-mode') === 'cards');
   });
@@ -2491,14 +2530,38 @@ function resetPracticeUiToDefaults(){
   document.getElementById('practicaIntroBox').style.display = '';
 }
 
+// El selector de Nivel/Parte es un <select> (no una fila de botones): con
+// lecciones partidas en hasta 9 partes, una fila de pastillas terminaba
+// envolviendose en varias filas y quitando mucho espacio vertical incluso
+// en escritorio. Un dropdown ocupa siempre una sola fila sin importar
+// cuantos niveles tenga la leccion, y los <optgroup> arman un arbol de 2
+// niveles (seccion -> sus partes) para las etiquetas con el patron
+// "X - Parte N/M" (ver levelLabels en LESSONS) -- las que no siguen ese
+// patron (Aplicaciones Chinas, y "Todo mezclado") quedan como opciones
+// sueltas, sin agrupar.
 function rebuildLevelSwitch(lesson, activeLevel){
-  const levelKeys = Object.keys(lesson.levelMap).map(Number)
-    .sort((a,b)=> (a===0?1:a) - (b===0?1:b) || a-b);
-  document.getElementById('levelSwitch').innerHTML = levelKeys.map(lv =>
-    `<button data-level="${lv}"${lv===activeLevel ? ' class="active"' : ''}>${
-      (lesson.levelLabels && lesson.levelLabels[lv]) || `Nivel ${lv}`
-    }</button>`
-  ).join('');
+  const levelKeys = Object.keys(lesson.levelMap).map(Number).sort((a,b)=>a-b);
+  const PART_SEP = ' - Parte ';
+  const groups = new Map(); // groupName -> [{lv, label}]
+  const standaloneHtml = [];
+  levelKeys.forEach(lv=>{
+    const fullLabel = (lesson.levelLabels && lesson.levelLabels[lv]) || `Nivel ${lv}`;
+    const sepIdx = fullLabel.indexOf(PART_SEP);
+    const selectedAttr = lv === activeLevel ? ' selected' : '';
+    if(sepIdx === -1){
+      standaloneHtml.push(`<option value="${lv}"${selectedAttr}>${fullLabel}</option>`);
+      return;
+    }
+    const groupName = fullLabel.slice(0, sepIdx);
+    const partLabel = 'Parte ' + fullLabel.slice(sepIdx + PART_SEP.length);
+    if(!groups.has(groupName)) groups.set(groupName, []);
+    groups.get(groupName).push(`<option value="${lv}"${selectedAttr}>${partLabel}</option>`);
+  });
+  let html = standaloneHtml.join('');
+  groups.forEach((options, groupName)=>{
+    html += `<optgroup label="${escAttr(groupName)}">${options.join('')}</optgroup>`;
+  });
+  document.getElementById('levelSwitch').innerHTML = html;
 }
 
 function loadLesson(lessonId){
@@ -2520,7 +2583,7 @@ function loadLesson(lessonId){
     (LESSON_ORDER[lessonId] && LESSON_ORDER[lessonId] > 1) ? '' : 'none';
   document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
   document.getElementById('sectionSwitchWrap').style.display = '';
-  document.getElementById('levelSwitch').style.display = '';
+  document.getElementById('levelSwitchWrap').style.display = '';
 
   touchStreak();
   renderStreakBadge();
@@ -2533,10 +2596,8 @@ function loadLesson(lessonId){
   renderGlossary();
   document.getElementById('searchInput').value = '';
 
-  const srsDue = srsDueCountForLesson(lessonId);
-  const srsDueEl = document.getElementById('srsDueText');
-  srsDueEl.textContent = srsDue > 0 ? `📅 ${srsDue} para repasar hoy` : '';
-  srsDueEl.style.display = srsDue > 0 ? '' : 'none';
+  reviewDueMode = false;
+  updateDueButton();
 
   // El switch de niveles es especifico de cada leccion (cantidad de niveles
   // y sus nombres varian), asi que se reconstruye desde levelLabels cada vez
@@ -2594,9 +2655,10 @@ function enterCumulativeMode(){
   document.getElementById('sectionSelect').value = 'ALL';
   populateSectionSelect();
   document.getElementById('sectionSwitchWrap').style.display = 'none';
-  document.getElementById('levelSwitch').style.display = 'none';
+  document.getElementById('levelSwitchWrap').style.display = 'none';
   document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = 'none';
-  document.getElementById('srsDueText').style.display = 'none';
+  reviewDueMode = false;
+  document.getElementById('srsDueBtn').style.display = 'none';
 
   const includedTitles = Object.keys(LESSON_ORDER)
     .filter(lid => LESSON_ORDER[lid] <= order)
@@ -2626,14 +2688,12 @@ function exitCumulativeMode(){
   document.getElementById('sectionSelect').value = 'ALL';
   populateSectionSelect();
   document.getElementById('sectionSwitchWrap').style.display = '';
-  document.getElementById('levelSwitch').style.display = '';
+  document.getElementById('levelSwitchWrap').style.display = '';
   document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
   rebuildLevelSwitch(LESSONS[currentLessonId], 1);
 
-  const srsDue = srsDueCountForLesson(currentLessonId);
-  const srsDueEl = document.getElementById('srsDueText');
-  srsDueEl.textContent = srsDue > 0 ? `📅 ${srsDue} para repasar hoy` : '';
-  srsDueEl.style.display = srsDue > 0 ? '' : 'none';
+  reviewDueMode = false;
+  updateDueButton();
 
   document.getElementById('cumulativeBanner').style.display = 'none';
   document.getElementById('cumulativeEnterBtn').style.display = '';
