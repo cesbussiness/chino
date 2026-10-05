@@ -9,13 +9,31 @@
     --verde:#2ea043;
     --rojo:#e0393e;
     --card-bg:#ffffff;
+    --card-bg-alt:#f5f5f5;
+    --bg-page:#faf9f6;
     --radius:14px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --negro:#ece7dc;
+      --gris:#a89f8d;
+      --gris-claro:#2b2820;
+      --borde:#3f3a2f;
+      --azul:#6fa0ff;
+      --verde:#3ddc73;
+      --rojo:#ff6b63;
+      --card-bg:#211e18;
+      --card-bg-alt:#2b2820;
+      --bg-page:#16140f;
+      color-scheme:dark;
+    }
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     font-family:"Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-    background:#faf9f6;
+    background:var(--bg-page);
     color:var(--negro);
     padding-bottom:60px;
   }
@@ -100,6 +118,7 @@
   .lesson-picker-inner h1{
     margin:0 0 8px;
     font-size:1.4rem;
+    text-wrap:balance;
   }
   .lesson-picker-inner > p{
     color:var(--gris);
@@ -127,7 +146,7 @@
     transform:translateY(-2px);
   }
   .lesson-card-icon{font-size:2.4rem;margin-bottom:8px;}
-  .lesson-card-title{font-weight:700;font-size:1.05rem;margin-bottom:6px;color:var(--negro);}
+  .lesson-card-title{font-weight:700;font-size:1.05rem;margin-bottom:6px;color:var(--negro);text-wrap:balance;}
   .lesson-card-sub{font-size:.8rem;color:var(--gris);line-height:1.4;}
   .lesson-card-due{
     margin-top:8px;
@@ -139,6 +158,7 @@
     font-weight:700;
     padding:3px 9px;
     border-radius:12px;
+    font-variant-numeric:tabular-nums;
   }
 
   .lesson-badge-row{margin-top:4px;min-height:1px;}
@@ -162,6 +182,7 @@
     padding:3px 10px;
     border-radius:12px;
     white-space:nowrap;
+    font-variant-numeric:tabular-nums;
   }
   #streakBadgePicker{margin:4px 0 0;}
   .header-top-row #streakBadgeApp{margin-right:8px;}
@@ -278,7 +299,7 @@
     margin-bottom:16px;
     line-height:1.55;
   }
-  .intro-box h2{margin-top:0;font-size:1.05rem;}
+  .intro-box h2{margin-top:0;font-size:1.05rem;text-wrap:balance;}
   .intro-box ul{margin:8px 0;padding-left:20px;}
   .tone-table{
     width:100%;
@@ -295,7 +316,7 @@
     text-align:left;
   }
   .tone-table thead th{
-    background:var(--card-bg-alt, #f5f5f5);
+    background:var(--card-bg-alt);
     font-weight:700;
   }
   .note{
@@ -639,7 +660,7 @@
   .practice-controls button.fc-review-btn:hover{background:#c22f34;}
   .practice-controls button.fc-advance-btn{background:var(--verde);color:#fff;}
   .practice-controls button.fc-advance-btn:hover{background:#25913a;}
-  .progress-txt{font-size:.85rem;color:var(--gris);}
+  .progress-txt{font-size:.85rem;color:var(--gris);font-variant-numeric:tabular-nums;}
 
   /* Handwriting practice: en mobile todo apilado (igual que antes); en
      desktop la info (palabra + caracter + radicales) va al lado del
@@ -1014,6 +1035,7 @@
     border-radius:20px;
     flex-wrap:wrap;
     justify-content:center;
+    font-variant-numeric:tabular-nums;
   }
   .game-question{
     text-align:center;
@@ -1283,6 +1305,7 @@
     font-size:.8rem;
     cursor:pointer;
     align-self:flex-start;
+    font-variant-numeric:tabular-nums;
   }
   #missedBtn:hover{background:#fdeceb;}
   #missedBtn.active-review{
@@ -1299,6 +1322,7 @@
     padding:8px 14px;
     border-radius:20px;
     cursor:pointer;
+    font-variant-numeric:tabular-nums;
   }
   .srs-due-text:hover{background:#fde6c4;}
   .srs-due-text.active-review{
@@ -1540,6 +1564,7 @@
     font-size:.9rem;
     padding:4px 0;
     border-bottom:1px solid var(--borde);
+    font-variant-numeric:tabular-nums;
   }
   .exam-score-row:last-child{border-bottom:none;}
 
@@ -1665,4 +1690,150 @@
     font-size:.66rem;
     color:#7a6a30;
     margin:4px 0 0;
+  }
+
+  /* ===================================================================
+     Modo oscuro: sigue la preferencia del sistema/navegador
+     (prefers-color-scheme), no hay boton para elegirlo a mano. Los
+     tokens centrales (:root, mas arriba) ya resuelven la mayoria de la
+     interfaz porque casi todo consume var(--negro)/var(--gris)/
+     var(--borde)/var(--card-bg)/etc. Este bloque cubre los colores que
+     quedaron escritos a mano en vez de con un token -- casi siempre
+     parte de una de 4 familias semanticas repetidas en toda la guia
+     (exito=verde, error=rojo, info=azul, aviso=ambar) mas las pastillas
+     negras (texto ambar sobre fondo casi negro) y las superficies
+     blancas sueltas.
+
+     Dos excepciones a proposito, que se dejan SIN tema oscuro:
+     - .app-icon: el fondo blanco disimula el recorte transparente de
+       los iconos reales de las capturas de pantalla; cambiarlo se ve
+       como un error de recorte, no como una mejora.
+     - .write-target (hoja de practica de escritura): es la "hoja de
+       papel" de HanziWriter. El trazo del usuario se dibuja con
+       drawingColor:'#222' fijado en JS (ver startWriteRound en
+       app.js) -- si el fondo pasara a oscuro el trazo se volveria
+       invisible. Se deja como hoja blanca siempre, como una libreta
+       de verdad, en vez de intentar sincronizar el color del trazo
+       con el tema (mas riesgo, ningun beneficio real).
+     =================================================================== */
+  @media (prefers-color-scheme:dark){
+    /* pastillas de fondo casi negro + texto ambar: se aclaran un toque
+       para que se distingan de la pagina (que en oscuro es AUN mas
+       oscura que #222), no para que dejen de ser "negras". */
+    header h1 .badge,
+    .menu-toggle-btn,
+    #lessonTitleBadge:not(:empty),
+    .practice-controls button,
+    .mode-switch button.active,
+    .info-toast button,
+    nav.tabs button.active{
+      background:#3a362c;
+    }
+    .mode-switch button.active{border-color:#3a362c;}
+    .menu-toggle-btn:hover{background:#4a4538;}
+
+    /* superficies blancas sueltas -> superficie de tarjeta oscura */
+    .lesson-picker-inner,
+    #cumulativeExitBtn,
+    #cumulativeEnterBtn,
+    .mode-switch button,
+    .option-btn,
+    .match-tile,
+    .sentence-tile,
+    .dialogue-tile,
+    #missedBtn,
+    .info-toast,
+    #sectionSelect, #levelSwitch,
+    #voiceSelect{
+      background:var(--card-bg);
+    }
+    .lesson-card{background:var(--card-bg);}
+
+    /* familia "exito" (verde): fondo/borde/texto */
+    .verified,
+    .option-btn.correct,
+    .type-input.correct,
+    .match-tile.correct,
+    .sentence-tile.correct,
+    .dialogue-tile.correct{
+      background:#16321f;
+    }
+    .verified{border-color:#2d5c3c;}
+    .option-btn.correct,
+    .match-tile.correct,
+    .sentence-tile.correct,
+    .dialogue-tile.correct{
+      color:#7fe3a3;
+    }
+
+    /* familia "error" (rojo): fondo/borde/texto */
+    .lesson-card-due,
+    .record-btn,
+    .glossary-row .tag-due,
+    .option-btn.incorrect,
+    .type-input.incorrect,
+    .match-tile.wrong-flash,
+    .sentence-tile.wrong-flash,
+    .dialogue-tile.wrong-flash{
+      background:#3a1715;
+    }
+    .lesson-card-due{border-color:#6b2c28;}
+    .record-btn{border-color:#6b2c28;}
+    .record-btn:hover, #missedBtn:hover{background:#4a1f1b;}
+    .option-btn.incorrect{color:#ff9d97;}
+
+    /* familia "info" (azul): fondo/borde/texto */
+    .cumulative-banner,
+    #cumulativeEnterBtn:hover,
+    .glossary-row .tag-grammar,
+    .match-tile.selected,
+    .sentence-answer .sentence-tile,
+    .dialogue-line.speaker-B,
+    .dialogue-answer .dialogue-tile,
+    .group-chip,
+    .section-switch{
+      background:#16253f;
+    }
+    .group-chip, .section-switch{border-color:#2d4a75;}
+    .glossary-row .tag-grammar, .group-chip{color:#a9c8ff;}
+    .group-chip b{color:#cfe0ff;}
+    .section-select-label{color:#a9c8ff;}
+    #sectionSelect, #levelSwitch{border-color:#2d4a75;}
+
+    /* familia "aviso" (ambar): fondo/borde/texto */
+    .streak-badge,
+    .note,
+    .option-btn:hover:not(:disabled),
+    .type-input.partial,
+    .char-chip.radical-chip,
+    .srs-due-text{
+      background:#3a2a10;
+    }
+    .streak-badge{border-color:#6b4f22;}
+    .streak-badge, .srs-due-text{color:#f0b55c;}
+    .note{color:#f0c879;}
+    .radical-tag{color:#f0b55c;}
+    .srs-due-text{border-color:#6b4f22;}
+    .srs-due-text:hover{background:#4a3717;}
+
+    /* chips de desglose neutros (radical/caracter/ejemplo de gramatica) */
+    .char-chip, .grammar-example{background:var(--gris-claro);}
+    .char-chip{color:var(--negro);}
+    .char-chip b{color:var(--negro);}
+
+    /* grises sueltos que no pasaban por var(--gris) */
+    footer, .sentence-answer:empty::before, .dialogue-answer:empty::before{
+      color:var(--gris);
+    }
+    .app-icon-placeholder{color:var(--gris);}
+
+    /* dropdown del menu en escritorio: es una superficie propia (no esta
+       sobre el degrade ambar del header, al revés que en mobile donde el
+       menu abre inline sobre la cabecera y no necesita cambios). */
+    @media (min-width:901px){
+      .menu-panel{background:var(--card-bg);}
+      nav.tabs button{color:var(--negro);}
+      nav.tabs button:hover{background:var(--gris-claro);}
+      .speed-label, .voice-hint{color:var(--gris);}
+    }
   }

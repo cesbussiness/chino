@@ -658,6 +658,88 @@ abre el modal con la explicación + al menos un ejemplo. Suite completa de
 regresión (smoke de las 5 lecciones/8 modos, overflow en mobile/tablet/
 desktop) sin errores de consola, en el build normal y en el `--protect`.
 
+## Selector de Nivel/Parte como dropdown en árbol, repasos pendientes visibles, y modo oscuro
+
+Tres pedidos seguidos del usuario sobre la vista de escritorio: (1) que el
+toolbar de Práctica no obligara a hacer scroll horizontal ni se viera
+desordenado con 7-9 niveles por lección, (2) saber EXACTAMENTE cuáles
+palabras cuentan en el "🔴 N para repasar" (antes solo mostraba un número),
+y (3) "aplícale un diseño web de nuestras skills" — pedido explícito de usar
+la skill `artifact-design` de Claude Code para mejorar el diseño visual.
+
+**(1) `#levelSwitch` pasó de fila de botones a `<select>` con `<optgroup>`**:
+la fila de pastillas de nivel ya envolvía a 2 filas en 1440px con las
+lecciones partidas en partes (confirmado con una medición real:
+`scrollWidth > clientWidth` incluso en escritorio ancho). Se reemplazó por
+un único dropdown (mismo estilo que el ya existente "Sección específica"),
+agrupando las partes de cada lección bajo un `<optgroup>` por sección
+(`rebuildLevelSwitch()` parsea el patrón `"X - Parte N/M"` ya usado en
+`levelLabels` para decidir el grupo) — un árbol real de 2 niveles en vez de
+una fila plana, y nunca vuelve a envolver ni a hacer scroll sin importar
+cuántas partes tenga una lección. "Aplicaciones Chinas" (3 niveles
+temáticos sin el patrón "- Parte") queda sin agrupar, como antes.
+`.mode-switch` se dejó como fila de botones (8 modos, cantidad fija, no
+crece con cada lección) — solo el selector de nivel/parte era el que
+escalaba sin límite y necesitaba este cambio.
+
+**(2) `#srsDueBtn` (antes `#srsDueText`, un `<span>` de solo lectura) ahora
+es clickeable**, mismo patrón que `#missedBtn` ("repasar las que
+fallaste"): filtra Tarjetas/Adivina/Emparejar/Tonos/Escribe el pinyin a
+exactamente las palabras vencidas de repetición espaciada (`getDueIndices()`,
+nueva función — lee `localStorage` una sola vez y filtra `ALL_TERMS` por
+`srsLessonIdFor(term)` + fecha vencida). Se excluye mutuamente con "repasar
+las que fallaste" (activar uno apaga el otro). El Glosario también marca
+cada palabra vencida con una insignia "🔴 Repasar" (mismo patrón visual que
+la insignia "📘 Gramática"), así que ahora se puede ver la lista completa
+sin necesidad de entrar a Práctica.
+
+**(3) Modo oscuro (`prefers-color-scheme: dark`), siguiendo los
+fundamentos de la skill `artifact-design`** ("Design both themes", "Choose
+neutrals deliberately", token system en `:root`): se agregaron tokens
+`--bg-page`/`--card-bg-alt` (antes el fondo de la página estaba
+hardcodeado en `body` y `--card-bg-alt` dependía de un fallback CSS que
+nunca se verificó contra un tema oscuro real) y un bloque
+`@media (prefers-color-scheme:dark)` que redefine los tokens centrales
+(`--negro`, `--gris`, `--gris-claro`, `--borde`, `--azul`, `--verde`,
+`--rojo`, `--card-bg`, `--bg-page`) con una paleta oscura cálida (sesgo
+hacia el ámbar de la marca, no gris puro — "elegir los neutros a
+propósito"). `--amarillo`/`--amarillo-osc` quedan igual: ya se ven bien
+sobre fondo oscuro. Como la mayoría de la hoja de estilos ya consumía esos
+tokens, el bloque central resolvió la mayor parte de la interfaz solo; el
+resto (~40 colores de las 4 familias semánticas ya repetidas en toda la
+guía — éxito=verde, error=rojo, info=azul, aviso=ámbar — más las pastillas
+negro-con-texto-ámbar y las superficies blancas sueltas) se cubrió con un
+bloque de overrides al final de `style.css`, agrupado por familia.
+
+Dos excepciones **a propósito**, documentadas en el CSS: `.app-icon`
+(fondo blanco fijo — disimula el recorte transparente de los íconos reales
+de capturas de pantalla, cambiarlo se ve como un bug de recorte) y
+`.write-target` (la hoja de práctica de escritura a mano: se deja blanca
+siempre, como una hoja de papel de verdad, porque `drawingColor:'#222'` de
+HanziWriter está fijado en JS — si el fondo pasara a oscuro el trazo
+dibujado se volvería invisible, y sincronizar ese color con el tema vía JS
+era mucho más riesgo para cero beneficio real). También se agregaron
+toques tipográficos menores de la misma skill: `text-wrap:balance` en los
+títulos principales y `font-variant-numeric:tabular-nums` en las
+insignias/contadores numéricos (racha, "N para repasar", progreso de
+tarjetas, puntaje del examen).
+
+No hay botón para elegir el tema a mano — sigue la preferencia del
+sistema/navegador únicamente, para no agregar estado nuevo que mantener.
+
+Verificado con Playwright: los 7/9 niveles de Lección 1/4 como opciones de
+un único `<select>` con los `<optgroup>` esperados ("① Llegada"/"②
+Salida"), 0 overflow en escritorio con las 9 partes de Lección 4; el flujo
+completo de "palabras para repasar" (datos de SRS sembrados a mano en
+`localStorage`, badge de la tarjeta de lección, badge del toolbar, insignia
+en Glosario, filtro de Tarjetas a exactamente esas palabras, se apaga al
+cambiar de nivel); capturas de pantalla con `colorScheme:'dark'` emuladas
+en picker/vocabulario/glosario/modal de gramática/Adivina/Emparejar/
+Escritura — contraste correcto en cada una (incluida la hoja de escritura,
+confirmada blanca a propósito). Suite completa de regresión (smoke,
+overflow, partes, examen, gramática, repasos pendientes) sin errores de
+consola, build normal y `--protect`.
+
 ## Regla de estilo: tuteo, español latinoamericano neutro
 
 A pedido del usuario: **nunca usar voseo** (vos/tocá/escribí/ordená/podés)
