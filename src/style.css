@@ -963,6 +963,17 @@
     -webkit-overflow-scrolling:touch;
     padding-bottom:4px;
   }
+  /* Hay espacio de sobra en pantallas de escritorio: en vez de obligar a
+     hacer scroll horizontal para ver los botones de nivel/modo que no
+     entran en una sola fila (cada vez mas con las lecciones partidas en
+     varias partes), se dejan pasar a una segunda fila. */
+  @media (min-width:901px){
+    .level-switch, .mode-switch{
+      flex-wrap:wrap;
+      overflow-x:visible;
+      padding-bottom:0;
+    }
+  }
   .level-switch button, .mode-switch button{
     border:1px solid var(--borde);
     background:#fff;
