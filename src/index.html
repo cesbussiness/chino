@@ -804,26 +804,33 @@
 
     <div class="practice-toolbar">
       <button id="cumulativeEnterBtn" style="display:none;">🔁 Repaso acumulado (mezcla con lecciones anteriores)</button>
-      <div class="section-switch" id="sectionSwitchWrap">
-        <label class="section-select-label" for="sectionSelect">Seccion especifica (opcional, anula el nivel de abajo):</label>
-        <select id="sectionSelect"></select>
+      <div class="toolbar-dropdowns-row">
+        <div class="section-switch" id="sectionSwitchWrap">
+          <label class="section-select-label" for="sectionSelect">Seccion especifica (opcional, anula el nivel de abajo):</label>
+          <select id="sectionSelect"></select>
+        </div>
+        <div class="section-switch" id="levelSwitchWrap">
+          <label class="section-select-label" for="levelSwitch">Nivel / parte:</label>
+          <select id="levelSwitch"></select>
+        </div>
+        <div class="section-switch" id="modeSwitchWrap">
+          <label class="section-select-label" for="modeSwitch">Modo de práctica:</label>
+          <select id="modeSwitch">
+            <option value="cards" selected>📇 Tarjetas de repaso</option>
+            <option value="game">🎮 Juego: Adivina</option>
+            <option value="match">🔗 Emparejar: Significado</option>
+            <option value="matchpy">🔗 Emparejar: Pinyin</option>
+            <option value="tones">🎵 Juego: Tonos</option>
+            <option value="type">⌨️ Escribe el pinyin</option>
+            <option value="write">✍️ Practicar escritura</option>
+            <option value="exam">📝 Examen</option>
+          </select>
+        </div>
       </div>
-      <div class="section-switch" id="levelSwitchWrap">
-        <label class="section-select-label" for="levelSwitch">Nivel / parte:</label>
-        <select id="levelSwitch"></select>
+      <div class="toolbar-small-row">
+        <button id="missedBtn" style="display:none;">📌 Repasar las que fallaste (<span id="missedCount">0</span>)</button>
+        <button class="srs-due-text" id="srsDueBtn" style="display:none;"></button>
       </div>
-      <div class="mode-switch" id="modeSwitch">
-        <button data-mode="cards" class="active">📇 Tarjetas de repaso</button>
-        <button data-mode="game">🎮 Juego: Adivina</button>
-        <button data-mode="match">🔗 Emparejar: Significado</button>
-        <button data-mode="matchpy">🔗 Emparejar: Pinyin</button>
-        <button data-mode="tones">🎵 Juego: Tonos</button>
-        <button data-mode="type">⌨️ Escribe el pinyin</button>
-        <button data-mode="write">✍️ Practicar escritura</button>
-        <button data-mode="exam">📝 Examen</button>
-      </div>
-      <button id="missedBtn" style="display:none;">📌 Repasar las que fallaste (<span id="missedCount">0</span>)</button>
-      <button class="srs-due-text" id="srsDueBtn" style="display:none;"></button>
     </div>
 
     <!-- Flashcard review mode -->

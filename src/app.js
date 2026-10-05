@@ -1332,12 +1332,8 @@ document.getElementById('srsDueBtn').addEventListener('click', ()=>{
   refreshCurrentMode();
 });
 
-document.getElementById('modeSwitch').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-mode]');
-  if(!btn) return;
-  document.querySelectorAll('#modeSwitch button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentMode = btn.getAttribute('data-mode');
+document.getElementById('modeSwitch').addEventListener('change', (e)=>{
+  currentMode = e.target.value;
   // "Repasar las que fallaste" es por juego: cambiar de juego arranca esa
   // cuenta de nuevo en vez de arrastrar los errores del juego anterior.
   missedIndices.clear();
@@ -2513,12 +2509,30 @@ function renderDialoguePanel(lessonId){
 // por defecto (nivel 1, modo Tarjetas, sin seccion especifica, sin
 // "repasar falladas" pendiente de la leccion anterior).
 // ---------------------------------------------------------------
+// Oculta/vuelve a mostrar la opcion "Examen" del selector de Modo (no
+// aplica durante Repaso acumulado, cuyo banco de oraciones es por
+// leccion). Se QUITA del DOM en vez de solo togglear su display --
+// "option[style=display:none]" tiene soporte disparejo entre motores de
+// navegador (no todos los ocultan de la lista desplegada igual), mientras
+// que sacarla del DOM es inequivoco en cualquiera.
+function setExamOptionAvailable(available){
+  const select = document.getElementById('modeSwitch');
+  const existing = select.querySelector('option[value="exam"]');
+  if(available && !existing){
+    const opt = document.createElement('option');
+    opt.value = 'exam';
+    opt.textContent = '📝 Examen';
+    select.appendChild(opt);
+  } else if(!available && existing){
+    existing.remove();
+  }
+}
+
 function resetPracticeUiToDefaults(){
   // el nivel/parte por defecto ya lo deja listo rebuildLevelSwitch(lesson, 1),
   // llamado justo antes en cada uno de los 3 lugares que llaman a esta funcion.
-  document.querySelectorAll('#modeSwitch button').forEach(b=>{
-    b.classList.toggle('active', b.getAttribute('data-mode') === 'cards');
-  });
+  document.getElementById('modeSwitch').value = 'cards';
+  currentMode = 'cards';
   document.getElementById('cardsMode').style.display = '';
   document.getElementById('gameMode').style.display = 'none';
   document.getElementById('matchMode').style.display = 'none';
@@ -2581,8 +2595,13 @@ function loadLesson(lessonId){
   document.getElementById('cumulativeBanner').style.display = 'none';
   document.getElementById('cumulativeEnterBtn').style.display =
     (LESSON_ORDER[lessonId] && LESSON_ORDER[lessonId] > 1) ? '' : 'none';
-  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
-  document.getElementById('sectionSwitchWrap').style.display = '';
+  setExamOptionAvailable(true);
+  // "Seccion especifica" solo aporta algo en Aplicaciones Chinas (secciones
+  // mas finas que sus 3 niveles tematicos). En Lecciones 1-4 cada nivel YA
+  // es una sola seccion/parte de <=10 palabras, asi que esta seccion seria
+  // identica a "Nivel / parte" -- se oculta ahi para no ocupar una fila
+  // entera con un control redundante.
+  document.getElementById('sectionSwitchWrap').style.display = (lessonId === 'aplicaciones_chinas') ? '' : 'none';
   document.getElementById('levelSwitchWrap').style.display = '';
 
   touchStreak();
@@ -2656,7 +2675,7 @@ function enterCumulativeMode(){
   populateSectionSelect();
   document.getElementById('sectionSwitchWrap').style.display = 'none';
   document.getElementById('levelSwitchWrap').style.display = 'none';
-  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = 'none';
+  setExamOptionAvailable(false);
   reviewDueMode = false;
   document.getElementById('srsDueBtn').style.display = 'none';
 
@@ -2687,9 +2706,9 @@ function exitCumulativeMode(){
 
   document.getElementById('sectionSelect').value = 'ALL';
   populateSectionSelect();
-  document.getElementById('sectionSwitchWrap').style.display = '';
+  document.getElementById('sectionSwitchWrap').style.display = (currentLessonId === 'aplicaciones_chinas') ? '' : 'none';
   document.getElementById('levelSwitchWrap').style.display = '';
-  document.querySelector('#modeSwitch button[data-mode="exam"]').style.display = '';
+  setExamOptionAvailable(true);
   rebuildLevelSwitch(LESSONS[currentLessonId], 1);
 
   reviewDueMode = false;

@@ -740,6 +740,73 @@ confirmada blanca a propósito). Suite completa de regresión (smoke,
 overflow, partes, examen, gramática, repasos pendientes) sin errores de
 consola, build normal y `--protect`.
 
+## Segunda vuelta: minimizar el alto de la barra de Practica en escritorio
+
+El usuario insistió (varias veces) en que la vista de escritorio seguía
+necesitando scroll para ver las tarjetas/juegos completos, y pidió revisar
+tambien mobile y probar en mas de un navegador. Dos cambios de fondo mas
+el pedido de pruebas cross-browser:
+
+**`#modeSwitch` (Tarjetas/Adivina/Emparejar x2/Tonos/Escribe el pinyin/
+Escritura/Examen) paso de fila de 8 botones a `<select>`**, mismo
+tratamiento que ya se le habia dado a Nivel/Parte: con 8 opciones
+quedaba envolviendose a 2 filas siempre, y un dropdown es una sola fila
+sin importar el ancho. `resetPracticeUiToDefaults()` ahora fija
+`modeSwitch.value` + `currentMode` en vez de togglear clases `.active`
+(de paso corrige un bug latente: antes `currentMode` podia quedar
+desincronizado del modo mostrado despues de entrar/salir de Repaso
+acumulado, porque esa funcion nunca tocaba la variable, solo el DOM).
+
+**"Seccion especifica" se oculta para Lecciones 1-4**: con el vocabulario
+ya partido en secciones de <=10 palabras (ver mas arriba), esa seccion
+lista EXACTAMENTE las mismas opciones que "Nivel / parte" para esas 4
+lecciones — mostrar ambas era un control redundante ocupando una fila
+entera. Sigue visible solo en "Aplicaciones Chinas", donde si aporta algo
+(sub-secciones mas finas que sus 3 niveles tematicos). `loadLesson()` y
+`exitCumulativeMode()` ahora condicionan su visibilidad a
+`lessonId === 'aplicaciones_chinas'`.
+
+**Los 2-3 dropdowns pasan a estar lado a lado en vez de apilados, solo en
+escritorio** (`.toolbar-dropdowns-row`, `flex-direction:row` desde
+901px, columna en mobile): en una lección con Nivel+Modo nomás esto los
+deja en una sola fila horizontal en vez de dos apiladas. Resultado medido
+con Playwright (`getBoundingClientRect()` del botón "Avanzar" de
+Tarjetas, el elemento mas abajo de la pantalla de Práctica): en Lección 4
+(el peor caso, con 9 partes) pasó de necesitar ~640px de alto a ~573px, y
+desapareció la fila de "Sección específica" — todo el flujo de
+Tarjetas (incluido "Grabar mi voz" y el contador de progreso) entra ahora
+en una laptop de 1366×768 con margen de sobra, cuando antes se cortaba.
+
+**`<option>` oculto vía `display:none` reemplazado por quitarlo del DOM**:
+mientras se revisaba esto se decidió endurecer el único patrón nuevo con
+riesgo real de comportarse distinto entre motores de navegador — ocultar
+la opción "Examen" durante Repaso acumulado (su banco de oraciones es por
+lección) usaba `style.display='none'` en un `<option>`, que históricamente
+ha tenido soporte dispar entre navegadores. `setExamOptionAvailable()`
+ahora la saca/vuelve a insertar del DOM directamente, sin ambigüedad en
+ningún motor.
+
+**Sobre las pruebas cross-browser que pidió el usuario**: esta sesión solo
+tiene Chromium instalado (`/opt/pw-browsers/`); se intentó descargar
+Firefox y WebKit vía Playwright pero la política de red del entorno
+bloquea los hosts de descarga (`cdn.playwright.dev`,
+`playwright.download.prss.microsoft.com` — error 403, "no rule or
+allowlist entry"). No se pudo correr la suite en motores de Firefox/
+Safari de verdad. Como mitigación: se audito el CSS/JS nuevo buscando
+patrones con soporte historicamente dispar (`:has()` — no se uso en
+ningun lado; `<option>` oculto — reemplazado segun el parrafo anterior,
+ver arriba) y se confirmo que el resto de las tecnicas nuevas (`<select>`+
+`<optgroup>`, `prefers-color-scheme`, `font-variant-numeric`,
+`text-wrap:balance` con degradacion segura, flexbox `gap`) tienen soporte
+parejo en Chrome/Firefox/Safari desde hace varios años. Queda pendiente
+que el usuario confirme en un Firefox/Safari real si tiene uno a mano.
+
+Verificado con Playwright (solo Chromium): suite completa de regresión,
+`fit_check.js` (mide que el flujo completo de Tarjetas entre sin scroll en
+1366×768/1280×800/1440×900), revision mobile (390×844) de las 4 lecciones
+en Práctica/Adivina/Examen, y modo oscuro otra vez sobre el nuevo layout —
+0 errores de consola en todos los casos, build normal y `--protect`.
+
 ## Regla de estilo: tuteo, español latinoamericano neutro
 
 A pedido del usuario: **nunca usar voseo** (vos/tocá/escribí/ordená/podés)

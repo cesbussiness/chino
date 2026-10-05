@@ -980,45 +980,24 @@
     gap:10px;
     margin-bottom:8px;
   }
-  .mode-switch{
+  .toolbar-dropdowns-row{
     display:flex;
-    flex-wrap:nowrap;
-    gap:8px;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    padding-bottom:4px;
+    flex-direction:column;
+    gap:10px;
   }
-  /* Hay espacio de sobra en pantallas de escritorio: en vez de obligar a
-     hacer scroll horizontal para ver los botones de modo que no entran en
-     una sola fila, se dejan pasar a una segunda fila. El nivel/parte dejo
-     de ser una fila de botones (ver #levelSwitch, ahora un <select> con
-     <optgroup> -- un menu de verdad en vez de pastillas que crecen sin
-     limite con cada leccion partida en mas partes). */
+  /* En escritorio hay sobra de ancho: los dropdowns de Seccion/Nivel/Modo
+     pasan de apilados (una fila cada uno) a lado a lado, para no gastar
+     tanto alto vertical antes de llegar al contenido de practica. */
   @media (min-width:901px){
-    .mode-switch{
-      flex-wrap:wrap;
-      overflow-x:visible;
-      padding-bottom:0;
+    .toolbar-dropdowns-row{
+      flex-direction:row;
+      align-items:flex-start;
+    }
+    .toolbar-dropdowns-row .section-switch{
+      flex:1;
+      min-width:0;
     }
   }
-  .mode-switch button{
-    border:1px solid var(--borde);
-    background:#fff;
-    color:var(--negro);
-    font-weight:600;
-    padding:8px 14px;
-    border-radius:20px;
-    font-size:.82rem;
-    white-space:nowrap;
-    flex-shrink:0;
-    cursor:pointer;
-  }
-  .mode-switch button.active{
-    background:#222;
-    color:var(--amarillo);
-    border-color:#222;
-  }
-
   .game-wrap, .tones-wrap, .write-wrap{
     display:flex;
     flex-direction:column;
@@ -1607,7 +1586,7 @@
     font-weight:600;
     color:#1a4d8f;
   }
-  #sectionSelect, #levelSwitch{
+  #sectionSelect, #levelSwitch, #modeSwitch{
     flex:1;
     min-width:200px;
     padding:8px 10px;
@@ -1617,6 +1596,14 @@
        zoom automatico de iOS Safari en selects con letra chica. */
     font-size:16px;
     background:#fff;
+  }
+  /* Botones chicos y condicionales (repasar fallos / repasar vencidas):
+     en fila en vez de cada uno su propia linea, para no sumar altura
+     cuando ambos terminan visibles a la vez. */
+  .toolbar-small-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
   }
   .tones-options .option-btn{
     font-family:inherit;
@@ -1724,26 +1711,23 @@
     .menu-toggle-btn,
     #lessonTitleBadge:not(:empty),
     .practice-controls button,
-    .mode-switch button.active,
     .info-toast button,
     nav.tabs button.active{
       background:#3a362c;
     }
-    .mode-switch button.active{border-color:#3a362c;}
     .menu-toggle-btn:hover{background:#4a4538;}
 
     /* superficies blancas sueltas -> superficie de tarjeta oscura */
     .lesson-picker-inner,
     #cumulativeExitBtn,
     #cumulativeEnterBtn,
-    .mode-switch button,
     .option-btn,
     .match-tile,
     .sentence-tile,
     .dialogue-tile,
     #missedBtn,
     .info-toast,
-    #sectionSelect, #levelSwitch,
+    #sectionSelect, #levelSwitch, #modeSwitch,
     #voiceSelect{
       background:var(--card-bg);
     }
@@ -1798,7 +1782,7 @@
     .glossary-row .tag-grammar, .group-chip{color:#a9c8ff;}
     .group-chip b{color:#cfe0ff;}
     .section-select-label{color:#a9c8ff;}
-    #sectionSelect, #levelSwitch{border-color:#2d4a75;}
+    #sectionSelect, #levelSwitch, #modeSwitch{border-color:#2d4a75;}
 
     /* familia "aviso" (ambar): fondo/borde/texto */
     .streak-badge,
