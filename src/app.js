@@ -79,12 +79,12 @@ const ICONS_JD_BOTTOMNAV = {"首页": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEB
 function getIconB64(section, hz){
   let dict = null;
   if(section.startsWith('home_page')) dict = ICONS_HOME;
-  else if(section === 'home_top') dict = ICONS_BNH;
+  else if(section.startsWith('home_top')) dict = ICONS_BNH;
   else if(section.startsWith('waimai_cat')) dict = ICONS_WAIMAI;
-  else if(section === 'waimai_top') dict = ICONS_BNW;
-  else if(section === 'jd_msg') dict = ICONS_JD_MSG;
+  else if(section.startsWith('waimai_top')) dict = ICONS_BNW;
+  else if(section.startsWith('jd_msg')) dict = ICONS_JD_MSG;
   else if(section.startsWith('jd_profile_')) dict = ICONS_JD_PROFILE;
-  else if(section === 'jd_bottomnav') dict = ICONS_JD_BOTTOMNAV;
+  else if(section.startsWith('jd_bottomnav')) dict = ICONS_JD_BOTTOMNAV;
   if(dict && dict[hz]) return 'data:image/jpeg;base64,' + dict[hz];
   return null;
 }
