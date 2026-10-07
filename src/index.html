@@ -55,6 +55,11 @@
         <div class="lesson-card-title">Lección 4: En el aeropuerto</div>
         <div class="lesson-card-sub">Inmigracion, aduana, taxi y embarque — el viaje completo por el aeropuerto</div>
       </button>
+      <button class="lesson-card" data-lesson="radicales">
+        <div class="lesson-card-icon">🧩</div>
+        <div class="lesson-card-title">Radicales del Chino</div>
+        <div class="lesson-card-sub">Los 50 radicales mas usados hasta HSK 5 — base para reconocer cualquier caracter nuevo</div>
+      </button>
     </div>
   </div>
 </div>
@@ -95,6 +100,9 @@
         <button data-panel="p-l4-llegada" data-lesson="leccion4" style="display:none;">Llegada, aduana y taxi</button>
         <button data-panel="p-l4-salida" data-lesson="leccion4" style="display:none;">Salida y embarque</button>
         <button data-panel="p-l4-dialogo" data-lesson="leccion4" style="display:none;">💬 Diálogo</button>
+
+        <button data-panel="p-rad-intro" data-lesson="radicales" style="display:none;">Introduccion</button>
+        <button data-panel="p-rad-vocab" data-lesson="radicales" style="display:none;">Vocabulario</button>
 
         <button data-panel="p-glosario">Glosario completo</button>
         <button data-panel="p-practica">Practica / Tarjetas</button>
@@ -775,6 +783,66 @@
       <button class="secondary" id="dialogueResetBtn-leccion4">↺ Reiniciar</button>
       <button class="fc-advance-btn" id="dialogueCheckBtn-leccion4">Comprobar</button>
     </div>
+  </section>
+
+  <!-- ============ RADICALES ============ -->
+  <section class="panel" id="p-rad-intro" data-lesson="radicales">
+    <div class="intro-box">
+      <h2>Los 50 radicales más usados hasta HSK 5</h2>
+      <p>Un radical es el componente que organiza y suele dar una pista del significado de un
+      carácter — aprenderlos ayuda a reconocer caracteres nuevos en vez de memorizar cada uno
+      desde cero. Esta lista son los <strong>50 radicales que más se repiten</strong> entre los
+      <strong>1687 caracteres</strong> del estándar oficial <strong>HSK 2.0</strong> (niveles 1 a
+      5), calculado cruzando esa lista de caracteres contra los datos de radicales del proyecto
+      <strong>Make Me a Hanzi</strong> — la misma fuente que ya usa el desglose de radicales en
+      Tarjetas y Escritura del resto de esta guía.</p>
+    </div>
+    <div class="intro-box">
+      <h2>Radicales con dos formas</h2>
+      <p>Varios radicales tienen una forma independiente (como carácter suelto) y una forma
+      reducida que solo aparece pegada a un lado de otro carácter. Por eso varias tarjetas de
+      esta lección lo aclaran en su propia definición — por ejemplo <strong>水</strong> (agua)
+      aparece como <strong>氵</strong> en caracteres como 没 o 汉.</p>
+      <ul class="steps-list">
+        <li><strong>人</strong> (persona) → <strong>亻</strong></li>
+        <li><strong>刀</strong> (cuchillo) → <strong>刂</strong></li>
+        <li><strong>心</strong> (corazón) → <strong>忄</strong></li>
+        <li><strong>水</strong> (agua) → <strong>氵</strong></li>
+        <li><strong>火</strong> (fuego) → <strong>灬</strong></li>
+        <li><strong>手</strong> (mano) → <strong>扌</strong></li>
+        <li><strong>言</strong> (hablar) → <strong>讠</strong></li>
+        <li><strong>金</strong> (metal/oro) → <strong>钅</strong></li>
+        <li><strong>糸</strong> (hilo/seda) → <strong>纟</strong></li>
+        <li><strong>食</strong> (comer) → <strong>饣</strong></li>
+        <li><strong>衣</strong> (ropa) → <strong>衤</strong></li>
+        <li><strong>犬</strong> (perro) → <strong>犭</strong></li>
+        <li><strong>肉</strong> (carne) → <strong>⺼</strong> (se ve casi igual que 月)</li>
+        <li><strong>竹</strong> (bambú) → <strong>⺮</strong></li>
+      </ul>
+      <div class="note">
+        阝 es un caso especial: visualmente es el mismo trazo a la izquierda o a la derecha del
+        carácter, pero representa dos radicales distintos según el lado — a la izquierda viene de
+        阜 (montaña/montículo, como en 院, 阴, 阳), y a la derecha viene de 邑 (ciudad/lugar, como
+        en 那, 都, 邮).
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-rad-vocab" data-lesson="radicales">
+    <div class="intro-box">
+      <h2>Vocabulario — Radicales</h2>
+      <p>50 radicales, ordenados del más al menos frecuente entre los caracteres de HSK 1-5.</p>
+    </div>
+    <div class="part-label">Parte 1 de 5</div>
+    <div class="grid-cards" data-section="radicales_p1"></div>
+    <div class="part-label">Parte 2 de 5</div>
+    <div class="grid-cards" data-section="radicales_p2"></div>
+    <div class="part-label">Parte 3 de 5</div>
+    <div class="grid-cards" data-section="radicales_p3"></div>
+    <div class="part-label">Parte 4 de 5</div>
+    <div class="grid-cards" data-section="radicales_p4"></div>
+    <div class="part-label">Parte 5 de 5</div>
+    <div class="grid-cards" data-section="radicales_p5"></div>
   </section>
 
   <!-- ============ GLOSARIO ============ -->

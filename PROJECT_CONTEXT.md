@@ -906,6 +906,84 @@ que Code no tenga que hacer regex sobre un archivo de 2.4MB para editarlos.
 (librería `pycccedict`, no memoria del modelo) — ver sección de bugs corregidos
 abajo antes de tocar esos archivos.
 
+## Sexta lección: "Radicales del Chino" (50 radicales, HSK 1-5)
+
+El usuario preguntó cuántos/cuáles son los radicales del chino simplificado, después
+pidió afinarlo a "los más usados hasta un nivel medio (HSK 5)", y finalmente pidió
+agregar esos 50 como una lección nueva, partida de a 10 "con las mismas condiciones
+que las demás lecciones". Como esta sesión no tiene acceso de navegación web general
+(ver más abajo), todo el cálculo se armó con datos verificables bajados por npm/
+GitHub raw en vez de memoria del modelo o resúmenes de buscador.
+
+**De dónde salen los 50 radicales**: se cruzaron dos fuentes públicas, ninguna
+inventada:
+1. **Caracteres**: estándar oficial HSK 2.0, niveles 1-5 (176+176+269+446+620 = 1687
+   caracteres distintos), vía el paquete `@leonsilicon/hsk2.0` de npm.
+2. **Radical de cada caracter**: el dictionary.txt del proyecto **Make Me a Hanzi**
+   (`raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt`) — la
+   MISMA fuente que ya usaba `CHAR_RADICALS` en `hanzi-data.js` para el desglose de
+   radicales de Tarjetas/Escritura, así que el radical que ve un alumno en esta
+   lección nueva es consistente con el que ya veía en las demás.
+
+Se armó un mapa de fusión para los radicales con dos formas (una independiente, otra
+reducida que solo aparece pegada a un lado de otro carácter — 人/亻, 刀/刂, 心/忄, 水/氵,
+火/灬, 手/扌, 言/讠, 金/钅, 糸/纟, 食/饣, 衣/衤, 犬/犭, 肉/⺼, 竹/⺮ — mas 阝, que se dejó
+unido aunque en rigor son 2 radicales Kangxi distintos que se ven idénticos según el
+lado del carácter) para que contaran como un solo radical en vez de aparecer
+duplicados en el ranking. El radical "等/section" directo del estándar Kangxi
+(probado primero vía el paquete `chinese-characters-decomposition`) se descartó
+porque usa la forma clásica/arcaica (ej. 言 en vez de 讠, 金 en vez de 钅, hasta
+asignaciones raras tipo 东→一) — no sirve para un alumno de chino simplificado, que
+es exactamente lo que el estándar 2009 de 201 radicales (ver la sección de abajo)
+vino a corregir.
+
+**Implementación** (mismo patrón que Lecciones 1-4): `VOCAB_RADICALES` partido en
+`radicales_p1`..`radicales_p5` (10 c/u), `LEVELMAP_RADICALES` con niveles 1-5 + nivel 0
+"Todo mezclado", entrada `radicales` en `LESSONS` con su propia tarjeta en el picker.
+Sin `sentenceBank`/`dialogueBank` ni lugar en `LESSON_ORDER` (no participa del Repaso
+acumulado) — mismo criterio que "Aplicaciones Chinas": un radical suelto no arma una
+oración natural, y es una lección de referencia aparte, no un paso de una secuencia.
+Por el mismo motivo que Lecciones 1-4, "Sección específica" queda oculta (cada nivel
+YA es una sola sección de 10 radicales, sería redundante) — el código que decide esto
+(`lessonId === 'aplicaciones_chinas'` en `loadLesson()`/`exitCumulativeMode()`) no
+necesitó ningún cambio, porque ya trataba "mostrar solo para Aplicaciones Chinas"
+como la excepción, no la regla.
+
+**Para que las 7 dinámicas funcionaran "en las mismas condiciones"** hubo que generar
+datos nuevos, no solo vocabulario:
+- **`TONE_GAME_DATA`** (Juego: Tonos) para los 50 radicales: como son de una sola
+  sílaba, los distractores son simplemente las otras 3 variantes de tono de la misma
+  sílaba (ej. mù → mū/mú/mǔ), generadas con `numbered_syllable_to_accented()` de
+  `tools/audit/pinyin_utils.py` (la misma función que ya usa el resto del proyecto
+  para convertir pinyin numerado a tildado) — no un algoritmo nuevo e inconsistente.
+- **`HANZI_STROKE_DATA`** (Practicar escritura): 26 de los 50 radicales no tenían
+  datos de trazos todavía (nunca habían aparecido como palabra suelta en ninguna
+  lección). Se sacaron del paquete npm `hanzi-writer-data` — el mismo proyecto/
+  licencia (Arphic Public License) que ya cubre el resto de `HANZI_STROKE_DATA`, así
+  que no suma una fuente ni una licencia nueva, solo completa la cobertura.
+
+**Sobre la falta de acceso a la mayoría de internet en esta sesión**: WebFetch está
+bloqueado para casi cualquier dominio (política de red del entorno, confirmado con
+Wikipedia, Hacking Chinese, chinese-forums.com, thepurelanguage.com — todos
+EGRESS_BLOCKED). Sí están permitidos el registro de npm (`registry.npmjs.org`) y
+`raw.githubusercontent.com`, que fue por donde se consiguieron los 3 paquetes/archivos
+de arriba. La respuesta inicial de "cuántos radicales" (214 Kangxi / 201 del estándar
+2009) se armó con WebSearch (que sí funciona, devuelve resúmenes aunque no la página
+completa) — para esa pregunta alcanzaba, pero para la lista de 50 con datos exactos
+hizo falta bajar los datasets reales en vez de confiar en resúmenes de búsqueda.
+
+Verificado con Playwright: 6 tarjetas de lección en el picker, pestañas
+Introducción/Vocabulario (sin Diálogo), 50 palabras en el Glosario, sin botón de
+Repaso acumulado, sin fila de Sección específica, 6 opciones de nivel (5 partes + Todo
+mezclado = 50 en Tarjetas), Juego de Tonos con 4 opciones reales (no "no hay
+suficientes palabras"), Practicar escritura con trazos reales, Examen sin ítems de
+oración (ni por parte ni en Todo mezclado, porque no hay sentenceBank) pero con
+selección múltiple/emparejar/tono normales, y una palabra con "forma reducida"
+buscable en el Glosario. Capturas en mobile (390×844, sin overflow) y modo oscuro
+confirmando que hereda todo el estilo sin ningún cambio de CSS nuevo. Suite completa
+de regresión (smoke, overflow, partes, examen, gramática, repasos pendientes,
+acumulado) sin errores de consola, build normal y `--protect`.
+
 ## Qué hace la guía (features)
 
 Lo que sigue describe la lección **"Aplicaciones Chinas"** en particular (la
