@@ -1095,7 +1095,46 @@ const RADICAL_DERIVADOS_BLOQUE1 = {
     }
   }
 };
-const SENTENCE_BANK_LECCION1 = [{"tiles":["你","好","吗"],"punct":"？","en":"¿Cómo estás?"},{"tiles":["他","是","老师"],"punct":"。","en":"Él es profesor."},{"tiles":["很","高兴","认识","你"],"punct":"。","en":"Mucho gusto en conocerte."},{"tiles":["你","叫","什么","名字"],"punct":"？","en":"¿Cómo te llamas?"},{"tiles":["我","们","一起","练习"],"punct":"。","en":"Practiquemos juntos."},{"tiles":["请问","您","贵姓"],"punct":"？","en":"Disculpe, ¿cuál es su apellido?"}];
+
+// Convierte los bloques de RADICAL_DERIVADOS_* (agrupados radical > nivel
+// HSK, pensados para la pestaña de lectura "Derivados") en un VOCAB/LEVEL_MAP
+// practicable con las mismas 6 dinamicas que el resto de la app -- cada
+// (radical, HSK) es su propia "parte" en el selector de Nivel/Parte.
+// rebuildLevelSwitch ya sabe armar un <optgroup> por radical a partir del
+// separador " - Parte " en levelLabels (mismo mecanismo que usan las
+// lecciones 1-4 para "Fonetica y saludos - Parte 1/6" etc.), asi que alcanza
+// con darle el formato correcto -- no hizo falta tocar esa funcion.
+const RADICAL_SLUGS = {"手":"shou","口":"kou","人":"ren","水":"shui","木":"mu","心":"xin","言":"yan","糸":"mi","辶":"chuo","肉":"rou"};
+function buildRadicalDerivadosVocab(bloques){
+  const data = {}, titles = {};
+  const levelMap = {"0": null};
+  const levelLabels = {0: "🔀 Todo mezclado"};
+  let lvl = 0;
+  bloques.forEach((bloque, bi) => {
+    const blockNum = bi + 1;
+    Object.values(bloque).forEach(rad => {
+      const slug = RADICAL_SLUGS[rad.h] || rad.h;
+      const glossaShort = rad.e.split(' (')[0]; // sin la aclaracion de forma reducida, para que el titulo no sea kilometrico
+      Object.keys(rad.niveles).sort((a, b) => a - b).forEach(hsk => {
+        lvl++;
+        const sec = `der_${slug}_${hsk}`;
+        data[sec] = rad.niveles[hsk].map(w => ({h: w.h, p: w.p, e: w.e, m: w.m}));
+        titles[sec] = `${rad.h} ${rad.p} (${glossaShort}) — derivados HSK${hsk}`;
+        levelMap[String(lvl)] = [sec];
+        levelLabels[lvl] = `B${blockNum} · ${rad.h} ${rad.p} ${glossaShort} - Parte HSK${hsk}`;
+      });
+    });
+  });
+  return {vocab: {data, titles}, levelMap, levelLabels};
+}
+// bloques 2-5 (los 40 radicales restantes) se suman a este array cuando
+// existan -- todo lo demas (niveles, optgroups, SRS, examen) escala solo.
+const RADICAL_DERIVADOS_BUILD = buildRadicalDerivadosVocab([RADICAL_DERIVADOS_BLOQUE1]);
+const VOCAB_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.vocab;
+const LEVELMAP_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.levelMap;
+const LEVELLABELS_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.levelLabels;
+
+const SENTENCE_BANK_LECCION1 =[{"tiles":["你","好","吗"],"punct":"？","en":"¿Cómo estás?"},{"tiles":["他","是","老师"],"punct":"。","en":"Él es profesor."},{"tiles":["很","高兴","认识","你"],"punct":"。","en":"Mucho gusto en conocerte."},{"tiles":["你","叫","什么","名字"],"punct":"？","en":"¿Cómo te llamas?"},{"tiles":["我","们","一起","练习"],"punct":"。","en":"Practiquemos juntos."},{"tiles":["请问","您","贵姓"],"punct":"？","en":"Disculpe, ¿cuál es su apellido?"}];
 const SENTENCE_BANK_LECCION2 = [{"tiles":["我","十","八","岁","了"],"punct":"。","en":"Tengo 18 años."},{"tiles":["你","几","岁","了"],"punct":"？","en":"¿Cuántos años tienes?"},{"tiles":["你","的","手机","号码","是","多少"],"punct":"？","en":"¿Cuál es tu número de celular?"},{"tiles":["他","九十","岁","了"],"punct":"。","en":"Él tiene 90 años."},{"tiles":["一","二","三","四","五"],"punct":"。","en":"Uno, dos, tres, cuatro, cinco."},{"tiles":["六","七","八","九","十"],"punct":"。","en":"Seis, siete, ocho, nueve, diez."}];
 const SENTENCE_BANK_LECCION3 = [{"tiles":["我","是","中国人"],"punct":"。","en":"Soy chino/a."},{"tiles":["你","是","哪","国","人"],"punct":"？","en":"¿De qué país eres?"},{"tiles":["我","会","说","汉语"],"punct":"。","en":"Sé hablar chino."},{"tiles":["你","会","说","西班牙语","吗"],"punct":"？","en":"¿Sabes hablar español?"},{"tiles":["他","是","美国人"],"punct":"。","en":"Él es estadounidense."},{"tiles":["我","是","巴西人"],"punct":"。","en":"Soy brasileño/a."}];
 const SENTENCE_BANK_LECCION4 = [{"tiles":["请","出示","护照"],"punct":"。","en":"Por favor muestre su pasaporte."},{"tiles":["这是","我","的","护照"],"punct":"。","en":"Esto es mi pasaporte."},{"tiles":["出租车","在","右手边"],"punct":"。","en":"El taxi está a la derecha."},{"tiles":["机场","在","哪里"],"punct":"？","en":"¿Dónde está el aeropuerto?"},{"tiles":["祝","你","旅途","愉快"],"punct":"！","en":"¡Que tengas un buen viaje!"},{"tiles":["我","没","有","申报","的","物品"],"punct":"。","en":"No tengo artículos que declarar."}];
@@ -1360,7 +1399,8 @@ function nextCard(){
   setCardsUiState(true);
   const term = ALL_TERMS[fcQueue[0]];
   document.getElementById('fcFront').innerHTML = term.h;
-  document.getElementById('fcBack').innerHTML = `<div class="py">${term.p}</div><div class="en">${term.e}</div>${renderWordBreakdown(term.h, term.p, term.e)}`;
+  const mnemoHtml = term.m ? `<div class="mnemo-fc">💡 ${term.m}</div>` : '';
+  document.getElementById('fcBack').innerHTML = `<div class="py">${term.p}</div><div class="en">${term.e}</div>${mnemoHtml}${renderWordBreakdown(term.h, term.p, term.e)}`;
   document.getElementById('flashcard').classList.remove('flipped');
   document.getElementById('fcProgress').textContent = `${fcMasteredCount} de ${fcTotalCount} dominadas`;
   document.getElementById('fcSpeak').setAttribute('data-current', term.h);
@@ -2819,6 +2859,9 @@ function loadLesson(lessonId){
   document.getElementById('cumulativeBanner').style.display = 'none';
   document.getElementById('cumulativeEnterBtn').style.display =
     (LESSON_ORDER[lessonId] && LESSON_ORDER[lessonId] > 1) ? '' : 'none';
+  derivadosMode = false;
+  document.getElementById('derivadosBanner').style.display = 'none';
+  document.getElementById('derivadosEnterBtn').style.display = (lessonId === 'radicales') ? '' : 'none';
   setExamOptionAvailable(true);
   // "Seccion especifica" solo aporta algo en Aplicaciones Chinas (secciones
   // mas finas que sus 3 niveles tematicos). En Lecciones 1-4 cada nivel YA
@@ -2950,6 +2993,88 @@ function exitCumulativeMode(){
 
 document.getElementById('cumulativeEnterBtn').addEventListener('click', enterCumulativeMode);
 document.getElementById('cumulativeExitBtn').addEventListener('click', exitCumulativeMode);
+
+// ---------------------------------------------------------------
+// Derivados: entrar/salir. Mismo mecanismo que Repaso acumulado (nunca toca
+// loadLesson() ni resetea la leccion activa) pero en vez de mezclar
+// lecciones, apunta VOCAB/LEVEL_MAP al pool de caracteres derivados -- las
+// 6 dinamicas de Practica (Tarjetas/Adivina/Emparejar x2/Tonos/Escribir) y
+// Examen quedan funcionando igual que con cualquier otra leccion porque
+// ALL_TERMS se reconstruye desde VOCAB como siempre (buildAllTerms()), no
+// con el atajo directo que usa Repaso acumulado.
+// ---------------------------------------------------------------
+let derivadosMode = false;
+function enterDerivadosMode(){
+  if(currentLessonId !== 'radicales') return;
+  derivadosMode = true;
+  VOCAB = VOCAB_RADICAL_DERIVADOS;
+  LEVEL_MAP = LEVELMAP_RADICAL_DERIVADOS;
+  currentSection = 'ALL';
+  currentLevel = 1;
+  reviewMissedMode = false;
+  missedIndices.clear();
+  updateMissedButton();
+
+  buildAllTerms();
+  document.getElementById('sectionSelect').value = 'ALL';
+  populateSectionSelect();
+  document.getElementById('sectionSwitchWrap').style.display = 'none';
+  rebuildLevelSwitch({levelMap: LEVELMAP_RADICAL_DERIVADOS, levelLabels: LEVELLABELS_RADICAL_DERIVADOS}, 1);
+  setExamOptionAvailable(true);
+
+  reviewDueMode = false;
+  updateDueButton();
+
+  document.getElementById('derivadosBanner').style.display = '';
+  document.getElementById('derivadosEnterBtn').style.display = 'none';
+
+  resetPracticeUiToDefaults();
+  resetOrder();
+  nextCard();
+
+  // saltar directo a la pestaña Practica -- ahi es donde el pool nuevo entra en accion
+  document.querySelectorAll('#tabNav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const practicaBtn = document.querySelector('#tabNav button[data-panel="p-practica"]');
+  practicaBtn.classList.add('active');
+  document.getElementById('p-practica').classList.add('active');
+  window.scrollTo({top:0});
+}
+
+function exitDerivadosMode(){
+  if(!derivadosMode) return;
+  derivadosMode = false;
+  const lesson = LESSONS[currentLessonId];
+  VOCAB = lesson.vocab;
+  LEVEL_MAP = lesson.levelMap;
+  currentSection = 'ALL';
+  currentLevel = 1;
+  reviewMissedMode = false;
+  missedIndices.clear();
+  updateMissedButton();
+
+  buildAllTerms();
+  document.getElementById('sectionSelect').value = 'ALL';
+  populateSectionSelect();
+  document.getElementById('sectionSwitchWrap').style.display = (currentLessonId === 'aplicaciones_chinas') ? '' : 'none';
+  rebuildLevelSwitch(lesson, 1);
+  setExamOptionAvailable(true);
+
+  reviewDueMode = false;
+  updateDueButton();
+
+  document.getElementById('derivadosBanner').style.display = 'none';
+  document.getElementById('derivadosEnterBtn').style.display = (currentLessonId === 'radicales') ? '' : 'none';
+
+  resetPracticeUiToDefaults();
+  resetOrder();
+  nextCard();
+  window.scrollTo({top:0});
+}
+
+document.getElementById('derivadosEnterBtn').addEventListener('click', enterDerivadosMode);
+document.getElementById('derivadosEnterBtnTab').addEventListener('click', enterDerivadosMode);
+document.getElementById('derivadosExitBtn').addEventListener('click', exitDerivadosMode);
 
 document.querySelectorAll('.lesson-card').forEach(btn=>{
   btn.addEventListener('click', ()=> loadLesson(btn.getAttribute('data-lesson')));

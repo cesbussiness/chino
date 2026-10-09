@@ -671,6 +671,15 @@
   .flashcard.flipped .back-info{display:block;}
   .flashcard .back-info .py{color:var(--azul);font-size:clamp(1.15rem, 4.5vw, 1.4rem);font-weight:700;margin-bottom:8px;}
   .flashcard .back-info .en{font-size:clamp(1rem, 3.8vw, 1.15rem);color:var(--gris);}
+  .flashcard .back-info .mnemo-fc{
+    font-size:.86rem;
+    font-style:italic;
+    color:var(--negro);
+    opacity:.85;
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--borde);
+  }
   /* flex-wrap:wrap es una red de seguridad: en pantallas muy angostas (320px,
      el iPhone SE 1a gen y similares) los 3 botones ("Repasar"/"Escuchar"/
      "Avanzar") mas su padding no entraban en una sola linea y forzaban ~3-4px
