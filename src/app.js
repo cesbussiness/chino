@@ -204,6 +204,41 @@ function renderLessonGridCards(lessonId){
   });
 }
 
+// Subleccion "Derivados" de Radicales: lectura, no practica -- un <details>
+// colapsable por radical (igual patron que #practicaIntroBox) para no tirar
+// de una sola vez ~130 fichas a la pantalla. Se renderiza una sola vez
+// (idempotente via dataset.rendered) la primera vez que se visita la
+// leccion de Radicales.
+function renderRadicalDerivados(){
+  const container = document.getElementById('radDerivadosContainer');
+  if(!container || container.dataset.rendered) return;
+  container.dataset.rendered = '1';
+
+  const bloques = [RADICAL_DERIVADOS_BLOQUE1]; // bloques 2-5 se suman aca cuando existan
+  container.innerHTML = bloques.map(bloque => Object.values(bloque).map(rad => {
+    const niveles = Object.keys(rad.niveles).sort((a,b)=>a-b).map(lvl => {
+      const cards = rad.niveles[lvl].map(w => `
+        <div class="derivado-card">
+          <div class="hz">${w.h}</div>
+          <div class="py">${w.p}</div>
+          <div class="en">${w.e}</div>
+          <div class="mnemo">${w.m}</div>
+        </div>
+      `).join('');
+      return `
+        <div class="hsk-level-label">HSK ${lvl}</div>
+        <div class="grid-cards derivado-grid">${cards}</div>
+      `;
+    }).join('');
+    return `
+      <details class="intro-box rad-derivado-block">
+        <summary>${rad.h} <span class="rad-summary-py">${rad.p}</span> — ${rad.e}</summary>
+        ${niveles}
+      </details>
+    `;
+  }).join('')).join('');
+}
+
 // speech synthesis
 let speechWarningShown = false;
 function showSpeechToast(){
@@ -894,6 +929,172 @@ const VOCAB_LECCION4 = {"data":{"leccion4_llegada_p1":[{"h":"在","p":"zài","e"
 const LEVELMAP_LECCION4 = {"0":null,"1":["leccion4_llegada_p1"],"2":["leccion4_llegada_p2"],"3":["leccion4_llegada_p3"],"4":["leccion4_llegada_p4"],"5":["leccion4_llegada_p5"],"6":["leccion4_llegada_p6"],"7":["leccion4_salida_p1"],"8":["leccion4_salida_p2"]};
 const VOCAB_RADICALES = {"data":{"radicales_p1":[{"h":"手","p":"shǒu","e":"Mano (radical; forma reducida: 扌)"},{"h":"口","p":"kǒu","e":"Boca / abertura"},{"h":"人","p":"rén","e":"Persona (radical; forma reducida: 亻)"},{"h":"水","p":"shuǐ","e":"Agua (radical; forma reducida: 氵)"},{"h":"木","p":"mù","e":"Árbol / madera"},{"h":"心","p":"xīn","e":"Corazón (radical; forma reducida: 忄)"},{"h":"言","p":"yán","e":"Hablar / palabra (radical; forma reducida: 讠)"},{"h":"糸","p":"mì","e":"Hilo / seda (radical; forma reducida: 纟)"},{"h":"辶","p":"chuò","e":"Caminar (radical de movimiento)"},{"h":"肉","p":"ròu","e":"Carne (radical; forma reducida: ⺼, parecida a 月)"}],"radicales_p2":[{"h":"女","p":"nǚ","e":"Mujer"},{"h":"宀","p":"mián","e":"Techo (radical de \"casa\")"},{"h":"土","p":"tǔ","e":"Tierra"},{"h":"火","p":"huǒ","e":"Fuego (radical; forma reducida: 灬)"},{"h":"日","p":"rì","e":"Sol / día"},{"h":"阝","p":"yì","e":"Montaña o ciudad, según el lado del carácter"},{"h":"艹","p":"cǎo","e":"Hierba / planta"},{"h":"刀","p":"dāo","e":"Cuchillo (radical; forma reducida: 刂)"},{"h":"贝","p":"bèi","e":"Concha / dinero"},{"h":"一","p":"yī","e":"Uno"}],"radicales_p3":[{"h":"金","p":"jīn","e":"Metal / oro (radical; forma reducida: 钅)"},{"h":"竹","p":"zhú","e":"Bambú (radical; forma reducida: ⺮)"},{"h":"目","p":"mù","e":"Ojo"},{"h":"禾","p":"hé","e":"Cereal / grano"},{"h":"巾","p":"jīn","e":"Tela / toalla"},{"h":"广","p":"guǎng","e":"Techo inclinado (radical de edificio)"},{"h":"力","p":"lì","e":"Fuerza"},{"h":"大","p":"dà","e":"Grande"},{"h":"又","p":"yòu","e":"De nuevo / otra vez"},{"h":"衣","p":"yī","e":"Ropa (radical; forma reducida: 衤)"}],"radicales_p4":[{"h":"攵","p":"pū","e":"Golpear suavemente (radical de acción)"},{"h":"厂","p":"chǎng","e":"Risco / fábrica"},{"h":"石","p":"shí","e":"Piedra"},{"h":"犬","p":"quǎn","e":"Perro (radical; forma reducida: 犭)"},{"h":"冫","p":"bīng","e":"Hielo (radical)"},{"h":"囗","p":"wéi","e":"Encierro / cerco"},{"h":"页","p":"yè","e":"Página / cabeza"},{"h":"丿","p":"piě","e":"Trazo hacia la izquierda (radical)"},{"h":"儿","p":"ér","e":"Hijo / piernas (radical)"},{"h":"王","p":"wáng","e":"Rey / jade"}],"radicales_p5":[{"h":"车","p":"chē","e":"Vehículo"},{"h":"食","p":"shí","e":"Comer / comida (radical; forma reducida: 饣)"},{"h":"足","p":"zú","e":"Pie"},{"h":"尸","p":"shī","e":"Cuerpo (radical)"},{"h":"十","p":"shí","e":"Diez"},{"h":"彳","p":"chì","e":"Paso (radical de \"caminar despacio\")"},{"h":"米","p":"mǐ","e":"Arroz"},{"h":"门","p":"mén","e":"Puerta"},{"h":"八","p":"bā","e":"Ocho / dividir"},{"h":"子","p":"zǐ","e":"Hijo / niño"}]},"titles":{"radicales_p1":"Radicales más usados (HSK 1-5) — Parte 1/5","radicales_p2":"Radicales más usados (HSK 1-5) — Parte 2/5","radicales_p3":"Radicales más usados (HSK 1-5) — Parte 3/5","radicales_p4":"Radicales más usados (HSK 1-5) — Parte 4/5","radicales_p5":"Radicales más usados (HSK 1-5) — Parte 5/5"}};
 const LEVELMAP_RADICALES = {"0":null,"1":["radicales_p1"],"2":["radicales_p2"],"3":["radicales_p3"],"4":["radicales_p4"],"5":["radicales_p5"]};
+
+// Subleccion "Derivados": para cada radical de radicales_p1 (Parte 1/5),
+// caracteres reales que lo contienen, agrupados por nivel HSK (1-6, estandar
+// clasico de 6 niveles) y con una mnemotecnia visual breve -- asociacion
+// pedagogica para recordar el carácter, no etimologia academica estricta.
+// Niveles sacados de @leonsilicon/hsk2.0 (HSK2.0_chars_level1..6.json);
+// radical de cada caracter cruzado contra dictionary.txt de Make Me a Hanzi
+// (misma fuente que CHAR_RADICALS/HANZI_STROKE_DATA). Bloque 1 de 5 --
+// bloques 2-5 (restantes 40 radicales) se agregan de la misma forma.
+const RADICAL_DERIVADOS_BLOQUE1 = {
+  "手": { h:"手", p:"shǒu", e:"Mano (forma reducida: 扌)",
+    niveles: {
+      1: [{h:"打",p:"dǎ",e:"Golpear / hacer",m:"La mano (手) golpea algo → golpear, hacer."}],
+      2: [{h:"找",p:"zhǎo",e:"Buscar",m:"La mano (扌) rebusca entre las cosas → buscar."},
+          {h:"报",p:"bào",e:"Informar / periódico",m:"La mano (扌) entrega una noticia → informar."}],
+      3: [{h:"把",p:"bǎ",e:"Agarrar (clasificador de objetos con mango)",m:"La mano (扌) agarra el mango de algo → agarrar."},
+          {h:"接",p:"jiē",e:"Recibir / conectar",m:"La mano (扌) se extiende para recibir a alguien → recibir, conectar."}],
+      4: [{h:"抱",p:"bào",e:"Abrazar",m:"La mano (扌) envuelve algo contra el pecho → abrazar."},
+          {h:"指",p:"zhǐ",e:"Dedo / señalar",m:"La mano (扌) señala con un dedo → dedo, señalar."}],
+      5: [{h:"拍",p:"pāi",e:"Aplaudir / dar una palmada",m:"La mano (扌) golpea suavemente → aplaudir."},
+          {h:"握",p:"wò",e:"Agarrar / estrechar (la mano)",m:"La mano (扌) se cierra alrededor de algo → estrechar."}],
+      6: [{h:"扛",p:"káng",e:"Cargar al hombro",m:"La mano/hombro (扌) carga algo pesado → cargar al hombro."},
+          {h:"捧",p:"pěng",e:"Sostener con ambas manos",m:"Las dos manos (扌) ofrecen algo con cuidado → sostener."}]
+    }
+  },
+  "口": { h:"口", p:"kǒu", e:"Boca / abertura",
+    niveles: {
+      1: [{h:"叫",p:"jiào",e:"Llamar / gritar",m:"La boca (口) grita para llamar a alguien."},
+          {h:"吃",p:"chī",e:"Comer",m:"La boca (口) recibe la comida → comer."}],
+      2: [{h:"告",p:"gào",e:"Anunciar / decir",m:"Algo que sale de la boca (口) hacia los demás → anunciar."},
+          {h:"唱",p:"chàng",e:"Cantar",m:"La boca (口) suena brillante y fuerte → cantar."}],
+      3: [{h:"响",p:"xiǎng",e:"Sonar",m:"Un sonido que sale de la boca (口) y resuena → sonar."},
+          {h:"哭",p:"kū",e:"Llorar",m:"Dos bocas (口口) abiertas como aullando → llorar."}],
+      4: [{h:"吸",p:"xī",e:"Inhalar",m:"La boca (口) atrae el aire hacia adentro → inhalar."},
+          {h:"味",p:"wèi",e:"Sabor",m:"Lo que la boca (口) prueba → sabor."}],
+      5: [{h:"吹",p:"chuī",e:"Soplar",m:"La boca (口) expulsa aire hacia afuera → soplar."},
+          {h:"喊",p:"hǎn",e:"Gritar",m:"La boca (口) se abre con fuerza para gritar."}],
+      6: [{h:"吼",p:"hǒu",e:"Rugir",m:"La boca (口) se abre como una cueva → rugir."},
+          {h:"唇",p:"chún",e:"Labios",m:"La parte que rodea la boca (口) → labios."}]
+    }
+  },
+  "人": { h:"人", p:"rén", e:"Persona (forma reducida: 亻)",
+    niveles: {
+      1: [{h:"他",p:"tā",e:"Él",m:"Una persona (亻) distinta de 'yo' → él."},
+          {h:"做",p:"zuò",e:"Hacer",m:"Una persona (亻) que causa que algo ocurra → hacer."}],
+      2: [{h:"休",p:"xiū",e:"Descansar",m:"Una persona (亻) apoyada en un árbol (木) → descansar."},
+          {h:"体",p:"tǐ",e:"Cuerpo",m:"La base/raíz de una persona (亻) → el cuerpo."}],
+      3: [{h:"伞",p:"sǎn",e:"Paraguas",m:"El dibujo mismo parece un paraguas abierto con varillas."},
+          {h:"信",p:"xìn",e:"Carta / confiar",m:"La palabra (言) de una persona (亻) en la que uno cree."}],
+      4: [{h:"传",p:"chuán",e:"Transmitir",m:"Una persona (亻) hace llegar un mensaje a otra → transmitir."},
+          {h:"修",p:"xiū",e:"Reparar",m:"Una persona (亻) que arregla y adorna algo → reparar."}],
+      5: [{h:"伴",p:"bàn",e:"Compañero",m:"Una persona (亻) que es 'la otra mitad' (半) de uno."},
+          {h:"偷",p:"tōu",e:"Robar",m:"Una persona (亻) que actúa a escondidas → robar."}],
+      6: [{h:"仰",p:"yǎng",e:"Admirar / mirar hacia arriba",m:"Una persona (亻) que levanta la cabeza para mirar arriba."},
+          {h:"侵",p:"qīn",e:"Invadir",m:"Una persona (亻) que avanza paso a paso en territorio ajeno."}]
+    }
+  },
+  "水": { h:"水", p:"shuǐ", e:"Agua (forma reducida: 氵)",
+    niveles: {
+      1: [{h:"汉",p:"hàn",e:"Chino / Han",m:"Originalmente el nombre de un río (氵), el Han."},
+          {h:"没",p:"méi",e:"No hay (negación)",m:"Algo que se hunde en el agua (氵) y desaparece."}],
+      2: [{h:"洗",p:"xǐ",e:"Lavar",m:"Lo primero que se hace con agua (氵) → lavar."},
+          {h:"游",p:"yóu",e:"Nadar / viajar",m:"Moverse en el agua (氵) como una bandera que ondea."}],
+      3: [{h:"河",p:"hé",e:"Río",m:"Una corriente de agua (氵) → río."},
+          {h:"清",p:"qīng",e:"Claro / limpio",m:"Agua (氵) pura y transparente → claro, limpio."}],
+      4: [{h:"油",p:"yóu",e:"Aceite",m:"Un líquido (氵) resbaladizo → aceite."},
+          {h:"海",p:"hǎi",e:"Mar",m:"Cada río desemboca aquí (氵) → el mar."}],
+      5: [{h:"浅",p:"qiǎn",e:"Superficial",m:"Poca agua (氵) → superficial."},
+          {h:"源",p:"yuán",e:"Fuente / origen",m:"El agua (氵) original, de donde todo brota."}],
+      6: [{h:"波",p:"bō",e:"Ola",m:"El movimiento ondulante en la superficie del agua (氵)."},
+          {h:"浮",p:"fú",e:"Flotar",m:"Lo que se mantiene sobre el agua (氵) sin hundirse."}]
+    }
+  },
+  "木": { h:"木", p:"mù", e:"Árbol / madera",
+    niveles: {
+      1: [{h:"本",p:"běn",e:"Raíz / origen / libro",m:"Una raya extra en la base del árbol (木) marca su raíz."},
+          {h:"桌",p:"zhuō",e:"Mesa",m:"Una pieza de madera (木) elevada sobre patas → mesa."}],
+      2: [{h:"条",p:"tiáo",e:"Tira / (clasificador)",m:"Una rama (木) larga y delgada → tira."}],
+      3: [{h:"树",p:"shù",e:"Árbol",m:"Plantar y sostener con la mano un árbol (木)."},
+          {h:"根",p:"gēn",e:"Raíz",m:"La parte del árbol (木) que queda fija bajo tierra."}],
+      4: [{h:"林",p:"lín",e:"Bosque",m:"Dos árboles (木) juntos → bosque."},
+          {h:"桥",p:"qiáo",e:"Puente",m:"Una estructura de madera (木) alta que cruza un río."}],
+      5: [{h:"村",p:"cūn",e:"Pueblo / aldea",m:"Un grupo de árboles (木) donde se asienta la gente."},
+          {h:"核",p:"hé",e:"Núcleo / semilla",m:"El centro duro de una fruta de árbol (木)."}],
+      6: [{h:"枝",p:"zhī",e:"Rama",m:"Lo que se ramifica de un árbol (木) → rama."},
+          {h:"栏",p:"lán",e:"Barandal / cerca",m:"Madera (木) que delimita un espacio."}]
+    }
+  },
+  "心": { h:"心", p:"xīn", e:"Corazón (forma reducida: 忄)",
+    niveles: {
+      1: [{h:"想",p:"xiǎng",e:"Pensar / querer",m:"Lo que el corazón (心) mira hacia adentro → pensar."},
+          {h:"怎",p:"zěn",e:"Cómo",m:"Lo que el corazón (心) se pregunta de repente."}],
+      2: [{h:"忙",p:"máng",e:"Ocupado",m:"El corazón (忄) corre de un lado a otro sin parar."},
+          {h:"意",p:"yì",e:"Intención / significado",m:"El sonido que nace del corazón (心) → intención."}],
+      3: [{h:"怕",p:"pà",e:"Temer",m:"El corazón (忄) se pone pálido de miedo."},
+          {h:"感",p:"gǎn",e:"Sentir",m:"Algo que toca el corazón (心) → sentir."}],
+      4: [{h:"怀",p:"huái",e:"Albergar / pecho",m:"Lo que se guarda cerca del corazón (忄), en el pecho."},
+          {h:"惊",p:"jīng",e:"Asustarse",m:"El corazón (忄) da un salto repentino → asustarse."}],
+      5: [{h:"念",p:"niàn",e:"Pensar en / recitar",m:"Lo que el corazón (心) guarda presente en la mente."},
+          {h:"悲",p:"bēi",e:"Tristeza",m:"Un corazón (心) que todo lo niega y se apena."}],
+      6: [{h:"怒",p:"nù",e:"Ira",m:"Un corazón (心) sometido que finalmente estalla."},
+          {h:"悟",p:"wù",e:"Comprender",m:"El corazón (忄) que llega a verse a sí mismo con claridad."}]
+    }
+  },
+  "言": { h:"言", p:"yán", e:"Hablar / palabra (forma reducida: 讠)",
+    niveles: {
+      1: [{h:"说",p:"shuō",e:"Hablar",m:"Palabras (言) que se intercambian entre dos personas."},
+          {h:"谢",p:"xiè",e:"Agradecer",m:"Palabras (言) que se ofrecen con gratitud."}],
+      2: [{h:"课",p:"kè",e:"Clase / lección",m:"Las palabras (言) que dan un resultado de aprendizaje."},
+          {h:"让",p:"ràng",e:"Permitir",m:"Ceder la palabra (讠) a otro → permitir."}],
+      3: [{h:"讲",p:"jiǎng",e:"Explicar / hablar",m:"Palabras (讠) que salen con profundidad, como de un pozo."},
+          {h:"记",p:"jì",e:"Recordar / anotar",m:"Las propias palabras (讠) anotadas para no olvidar."}],
+      4: [{h:"计",p:"jì",e:"Calcular / plan",m:"Palabras (讠) que cuentan y ordenan números."},
+          {h:"证",p:"zhèng",e:"Probar / certificado",m:"La palabra (讠) correcta y comprobada."}],
+      5: [{h:"诗",p:"shī",e:"Poesía",m:"Palabras (讠) elevadas, casi sagradas → poesía."},
+          {h:"谦",p:"qiān",e:"Humilde",m:"Palabras (讠) moderadas, sin exceso → humilde."}],
+      6: [{h:"谎",p:"huǎng",e:"Mentir",m:"Palabras (讠) vacías, sin verdad detrás."},
+          {h:"诱",p:"yòu",e:"Tentar / inducir",m:"Palabras (讠) que destacan para atraer a alguien."}]
+    }
+  },
+  "糸": { h:"糸", p:"mì", e:"Hilo / seda (forma reducida: 纟)",
+    niveles: {
+      1: [{h:"系",p:"xì",e:"Sistema / conexión",m:"Hilos (糸) atados entre sí → conectar, sistema."}],
+      2: [{h:"红",p:"hóng",e:"Rojo",m:"Hilo (纟) teñido de un color intenso → rojo."},
+          {h:"给",p:"gěi",e:"Dar",m:"Entregar un hilo o material (纟) a alguien → dar."}],
+      3: [{h:"练",p:"liàn",e:"Practicar",m:"Hilar (纟) una y otra vez hasta dominar la técnica."},
+          {h:"结",p:"jié",e:"Atar / nudo",m:"Un hilo (纟) atado en un nudo."}],
+      4: [{h:"线",p:"xiàn",e:"Línea / hilo",m:"Un hilo (纟) fino y largo → línea."},
+          {h:"细",p:"xì",e:"Fino / detallado",m:"Un hilo (纟) muy delgado → fino."}],
+      5: [{h:"组",p:"zǔ",e:"Grupo / formar",m:"Varios hilos (纟) juntos formando algo mayor."},
+          {h:"织",p:"zhī",e:"Tejer",m:"Hilos (纟) que se entrelazan → tejer."}],
+      6: [{h:"绑",p:"bǎng",e:"Atar",m:"Un hilo (纟) que envuelve y asegura algo."},
+          {h:"缝",p:"fèng",e:"Coser",m:"Un hilo (纟) que une dos telas → coser."}]
+    }
+  },
+  "辶": { h:"辶", p:"chuò", e:"Caminar (radical de movimiento)",
+    niveles: {
+      1: [{h:"这",p:"zhè",e:"Esto",m:"Algo que está aquí, en el camino (辶) que se recorre."}],
+      2: [{h:"过",p:"guò",e:"Pasar",m:"Caminar (辶) a través de un lugar → pasar."},
+          {h:"进",p:"jìn",e:"Entrar",m:"Caminar (辶) hacia adelante, hacia dentro → entrar."}],
+      3: [{h:"选",p:"xuǎn",e:"Elegir",m:"Caminar (辶) escogiendo entre varias opciones."},
+          {h:"遇",p:"yù",e:"Encontrarse",m:"Caminar (辶) y encontrarse con alguien en el camino."}],
+      4: [{h:"通",p:"tōng",e:"Comunicar / pasar",m:"Un camino (辶) que se abre y permite pasar."},
+          {h:"连",p:"lián",e:"Conectar",m:"Un camino (辶) que une un punto con otro."}],
+      5: [{h:"追",p:"zhuī",e:"Perseguir",m:"Caminar (辶) deprisa detrás de alguien."},
+          {h:"退",p:"tuì",e:"Retroceder",m:"Caminar (辶) hacia atrás → retroceder."}],
+      6: [{h:"遥",p:"yáo",e:"Lejano",m:"Un camino (辶) que se extiende muy, muy lejos."},
+          {h:"逼",p:"bī",e:"Forzar / presionar",m:"Caminar (辶) acercándose demasiado a alguien."}]
+    }
+  },
+  "肉": { h:"肉", p:"ròu", e:"Carne (forma reducida: ⺼, idéntica a 月 'luna' en la escritura moderna)",
+    niveles: {
+      1: [{h:"朋",p:"péng",e:"Amigo",m:"Dos trozos de carne/luna (月) juntos, como dos iguales → amigo."},
+          {h:"服",p:"fú",e:"Ropa / tomar medicina",m:"Lo que se pone sobre el cuerpo (月) → ropa."}],
+      2: [{h:"望",p:"wàng",e:"Esperar / mirar a lo lejos",m:"Aquí 月 funciona como 'luna' (mirar la luna llena), no como 'carne' — un buen ejemplo de que hay que mirar el carácter completo, no solo el radical."}],
+      3: [{h:"胖",p:"pàng",e:"Gordo",m:"Un cuerpo (⺼) con la mitad (半) de más."},
+          {h:"脸",p:"liǎn",e:"Cara",m:"La parte del cuerpo (⺼) que todos miran primero."}],
+      4: [{h:"肚",p:"dù",e:"Vientre / panza",m:"Una parte del cuerpo (⺼) → el vientre."},
+          {h:"脱",p:"tuō",e:"Quitarse / desprender",m:"Separar algo del cuerpo (⺼) → quitarse."}],
+      5: [{h:"胃",p:"wèi",e:"Estómago",m:"Un órgano del cuerpo (月/肉) con forma de bolsa → el estómago."},
+          {h:"胸",p:"xiōng",e:"Pecho",m:"La parte del cuerpo (⺼) donde está el corazón."}],
+      6: [{h:"肺",p:"fèi",e:"Pulmones",m:"Un órgano del cuerpo (⺼) → los pulmones."},
+          {h:"腹",p:"fù",e:"Abdomen",m:"Una parte grande del cuerpo (⺼) → el abdomen."}]
+    }
+  }
+};
 const SENTENCE_BANK_LECCION1 = [{"tiles":["你","好","吗"],"punct":"？","en":"¿Cómo estás?"},{"tiles":["他","是","老师"],"punct":"。","en":"Él es profesor."},{"tiles":["很","高兴","认识","你"],"punct":"。","en":"Mucho gusto en conocerte."},{"tiles":["你","叫","什么","名字"],"punct":"？","en":"¿Cómo te llamas?"},{"tiles":["我","们","一起","练习"],"punct":"。","en":"Practiquemos juntos."},{"tiles":["请问","您","贵姓"],"punct":"？","en":"Disculpe, ¿cuál es su apellido?"}];
 const SENTENCE_BANK_LECCION2 = [{"tiles":["我","十","八","岁","了"],"punct":"。","en":"Tengo 18 años."},{"tiles":["你","几","岁","了"],"punct":"？","en":"¿Cuántos años tienes?"},{"tiles":["你","的","手机","号码","是","多少"],"punct":"？","en":"¿Cuál es tu número de celular?"},{"tiles":["他","九十","岁","了"],"punct":"。","en":"Él tiene 90 años."},{"tiles":["一","二","三","四","五"],"punct":"。","en":"Uno, dos, tres, cuatro, cinco."},{"tiles":["六","七","八","九","十"],"punct":"。","en":"Seis, siete, ocho, nueve, diez."}];
 const SENTENCE_BANK_LECCION3 = [{"tiles":["我","是","中国人"],"punct":"。","en":"Soy chino/a."},{"tiles":["你","是","哪","国","人"],"punct":"？","en":"¿De qué país eres?"},{"tiles":["我","会","说","汉语"],"punct":"。","en":"Sé hablar chino."},{"tiles":["你","会","说","西班牙语","吗"],"punct":"？","en":"¿Sabes hablar español?"},{"tiles":["他","是","美国人"],"punct":"。","en":"Él es estadounidense."},{"tiles":["我","是","巴西人"],"punct":"。","en":"Soy brasileño/a."}];
@@ -2633,6 +2834,7 @@ function loadLesson(lessonId){
   buildAllTerms();
   renderLessonGridCards(lessonId);
   renderDialoguePanel(lessonId);
+  if(lessonId === 'radicales') renderRadicalDerivados();
   document.getElementById('sectionSelect').value = 'ALL';
   populateSectionSelect();
   renderGlossary();
