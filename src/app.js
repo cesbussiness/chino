@@ -214,7 +214,7 @@ function renderRadicalDerivados(){
   if(!container || container.dataset.rendered) return;
   container.dataset.rendered = '1';
 
-  const bloques = [RADICAL_DERIVADOS_BLOQUE1]; // bloques 2-5 se suman aca cuando existan
+  const bloques = [RADICAL_DERIVADOS_BLOQUE1, RADICAL_DERIVADOS_BLOQUE2]; // bloques 3-5 se suman aca cuando existan
   container.innerHTML = bloques.map(bloque => Object.values(bloque).map(rad => {
     const niveles = Object.keys(rad.niveles).sort((a,b)=>a-b).map(lvl => {
       const cards = rad.niveles[lvl].map(w => `
@@ -1200,9 +1200,216 @@ function buildRadicalDerivadosVocab(bloques){
   });
   return {vocab: {data, titles}, levelMap, levelLabels};
 }
-// bloques 2-5 (los 40 radicales restantes) se suman a este array cuando
+// Bloque 2: radicales de radicales_p2 (女,宀,土,火,日,阝,艹,刀,贝,一). Mismo
+// criterio que el Bloque 1: palabras reales de HSK2.0_words_levelN que
+// contienen un caracter con este radical (dictionary.txt), sin repetir
+// ninguna palabra ya usada en el Bloque 1.
+const RADICAL_DERIVADOS_BLOQUE2 = {
+  "女": { h:"女", p:"nǚ", e:"Mujer",
+    niveles: {
+      1: [{h:"她",p:"tā",e:"Ella",m:"她 (tā) lleva 女 (mujer) → marca el género femenino del pronombre."},
+          {h:"妈妈",p:"māma",e:"Mamá",m:"妈 (mā) lleva 女 (mujer/madre) → mamá."},
+          {h:"女儿",p:"nǚ'ér",e:"Hija",m:"女 (mujer) de forma directa + 儿 (hijo/a) → hija."}],
+      2: [{h:"妹妹",p:"mèimei",e:"Hermana menor",m:"妹 (mèi) lleva 女 (mujer) → hermana."},
+          {h:"姐姐",p:"jiějie",e:"Hermana mayor",m:"姐 (jiě) lleva 女 (mujer) → hermana mayor."},
+          {h:"开始",p:"kāishǐ",e:"Empezar",m:"始 (shǐ) lleva 女 (mujer: dar a luz = el inicio de la vida) → empezar."}],
+      3: [{h:"奶奶",p:"nǎinai",e:"Abuela (paterna)",m:"奶 (nǎi) lleva 女 (mujer) → abuela, leche materna."},
+          {h:"爱好",p:"àihào",e:"Afición / lo que le gusta",m:"好 (hǎo) lleva 女 (una mujer con su hijo, 子, 'bueno') → aquí 'lo que le gusta a uno'."},
+          {h:"结婚",p:"jiéhūn",e:"Casarse",m:"婚 (hūn) lleva 女 (mujer) → matrimonio, casarse."}],
+      4: [{h:"好像",p:"hǎoxiàng",e:"Como si / parece que",m:"好 (女, bueno) otra vez + 像 (parecer) → parece que."},
+          {h:"最好",p:"zuìhǎo",e:"Lo mejor",m:"好 (女, bueno) otra vez + 最 (el más) → lo mejor."},
+          {h:"例如",p:"lìrú",e:"Por ejemplo",m:"如 (rú) lleva 女 (mujer) + 口 (boca, 'decir') → 'como se dice' = por ejemplo."}],
+      5: [{h:"女士",p:"nǚshì",e:"Dama / señora",m:"女 (mujer) de forma directa + 士 (persona formal) → dama, señora."},
+          {h:"如今",p:"rújīn",e:"Hoy en día",m:"如 (女, 'así es') otra vez + 今 (ahora) → hoy en día."},
+          {h:"好奇",p:"hàoqí",e:"Curioso/a",m:"好 (女) otra vez, aquí como 'gustarle' + 奇 (raro) → sentir curiosidad."}],
+      6: [{h:"化妆",p:"huàzhuāng",e:"Maquillarse",m:"妆 (zhuāng) lleva 女 (mujer) → maquillaje, arreglarse."},
+          {h:"夫妇",p:"fūfù",e:"Pareja (matrimonio)",m:"妇 (fù) lleva 女 (mujer) → esposa; con 夫 (esposo), la pareja."},
+          {h:"奇妙",p:"qímiào",e:"Maravilloso/a",m:"妙 (miào) lleva 女 (mujer, 'sutil/delicada') → maravilloso, sutil."}]
+    }
+  },
+  "宀": { h:"宀", p:"mián", e:"Techo (radical de \"casa\")",
+    niveles: {
+      1: [{h:"家",p:"jiā",e:"Casa / familia",m:"家 (jiā) lleva 宀 (un techo) sobre 豕 (cerdo, animal doméstico) → el hogar."},
+          {h:"不客气",p:"bù kèqi",e:"De nada",m:"客 (kè) lleva 宀 (techo) → un huésped bajo el techo de otro."}],
+      2: [{h:"教室",p:"jiàoshì",e:"Aula",m:"室 (shì) lleva 宀 (techo) → una habitación, un aula."},
+          {h:"完",p:"wán",e:"Terminar",m:"完 (wán) lleva 宀 (techo) → 'llegar al techo' = completar, terminar."},
+          {h:"它",p:"tā",e:"Eso / ello (para cosas/animales)",m:"它 (tā) lleva 宀 (techo) en su trazo superior → el pronombre para lo que no es persona."}],
+      3: [{h:"国家",p:"guójiā",e:"País",m:"家 (宀, hogar) otra vez → el 'hogar' de toda una nación."},
+          {h:"安静",p:"ānjìng",e:"Tranquilo / silencioso",m:"安 (ān) lleva 宀 (una mujer, 女, bajo un techo = seguridad) → tranquilo."},
+          {h:"完成",p:"wánchéng",e:"Completar",m:"完 (宀, terminar) otra vez → llevar algo a su fin."}],
+      4: [{h:"作家",p:"zuòjiā",e:"Escritor/a",m:"家 (宀) otra vez, aquí como sufijo de profesión → quien escribe."},
+          {h:"安全",p:"ānquán",e:"Seguro",m:"安 (宀, seguridad bajo un techo) otra vez → a salvo."},
+          {h:"完全",p:"wánquán",e:"Completamente",m:"完 (宀, terminar) otra vez → por completo."}],
+      5: [{h:"专家",p:"zhuānjiā",e:"Experto/a",m:"家 (宀) otra vez, como sufijo de profesión → un experto."},
+          {h:"事实",p:"shìshí",e:"Hecho (real)",m:"实 (shí) lleva 宀 (techo) sobre lo que hay 'dentro de casa', lo real → un hecho."},
+          {h:"制定",p:"zhìdìng",e:"Elaborar / formular",m:"定 (dìng) lleva 宀 (techo, 'asentado bajo techo') → fijo, decidido → formular."}],
+      6: [{h:"人家",p:"rénjiā",e:"La gente / uno (pronombre)",m:"家 (宀) otra vez → un hogar, una casa; aquí 'la gente de esa casa'."},
+          {h:"从容",p:"cóngróng",e:"Sin apuro / tranquilo",m:"容 (róng) lleva 宀 (techo) sobre 谷 (valle, 'contener') → tener espacio, calma."},
+          {h:"住宅",p:"zhùzhái",e:"Vivienda / residencia",m:"宅 (zhái) lleva 宀 (techo) → una vivienda."}]
+    }
+  },
+  "土": { h:"土", p:"tǔ", e:"Tierra",
+    niveles: {
+      1: [{h:"在",p:"zài",e:"Estar en",m:"在 (zài) lleva 土 (tierra, 'estar parado en el suelo') → estar en un lugar."},
+          {h:"坐",p:"zuò",e:"Sentarse",m:"坐 (zuò) lleva 土 (el suelo donde dos personas, 从, se sientan) → sentarse."},
+          {h:"块",p:"kuài",e:"Pedazo / (clasificador de moneda)",m:"块 (kuài) lleva 土 (un terrón de tierra) → un pedazo, un trozo."}],
+      2: [{h:"正在",p:"zhèngzài",e:"Estar haciendo (en este momento)",m:"在 (土, estar en/presente) otra vez → acción en curso."}],
+      3: [{h:"地图",p:"dìtú",e:"Mapa",m:"地 (dì) lleva 土 (tierra) → con 图 (dibujo), un mapa."},
+          {h:"地方",p:"dìfang",e:"Lugar",m:"地 (土, tierra) otra vez → un lugar, un sitio."},
+          {h:"城市",p:"chéngshì",e:"Ciudad",m:"城 (chéng) lleva 土 (la muralla de tierra que rodea una ciudad) → ciudad."}],
+      4: [{h:"地址",p:"dìzhǐ",e:"Dirección",m:"地 (土, lugar) otra vez → la dirección de un lugar."},
+          {h:"地球",p:"dìqiú",e:"La Tierra (planeta)",m:"地 (土) otra vez + 球 (esfera) → el planeta Tierra."},
+          {h:"基础",p:"jīchǔ",e:"Base / fundamento",m:"基 (jī) lleva 土 (tierra, los cimientos) → la base de algo."}],
+      5: [{h:"土地",p:"tǔdì",e:"Tierra / terreno",m:"土 (tierra) de forma directa + 地 (lugar) → la tierra, el terreno."},
+          {h:"土豆",p:"tǔdòu",e:"Papa / patata",m:"土 (tierra) de forma directa → el tubérculo que crece bajo tierra."},
+          {h:"地区",p:"dìqū",e:"Región / zona",m:"地 (土, lugar) otra vez → una región, una zona."}],
+      6: [{h:"区域",p:"qūyù",e:"Área / región",m:"域 (yù) lleva 土 (un territorio de tierra) → un área, un dominio."},
+          {h:"土壤",p:"tǔrǎng",e:"Suelo (tierra)",m:"土 (tierra) de forma directa + 壤 (también 土) → el suelo."},
+          {h:"典型",p:"diǎnxíng",e:"Típico / modelo",m:"型 (xíng) lleva 土 (un molde de tierra/barro) → un modelo, un tipo."}]
+    }
+  },
+  "火": { h:"火", p:"huǒ", e:"Fuego (forma reducida: 灬)",
+    niveles: {
+      1: [{h:"点",p:"diǎn",e:"Tocar / punto",m:"点 (diǎn) lleva 灬 (fuego, de ahí 'un punto encendido') → punto, tocar levemente."},
+          {h:"热",p:"rè",e:"Caliente",m:"热 (rè) lleva 灬 (fuego) → caliente, calor."}],
+      2: [{h:"火车站",p:"huǒchēzhàn",e:"Estación de tren",m:"火 (fuego) de forma directa + 车 (vehículo) → 'carro de fuego' = tren."}],
+      3: [{h:"发烧",p:"fāshāo",e:"Tener fiebre",m:"烧 (shāo) lleva 火 (fuego) → quemar, arder → fiebre."},
+          {h:"热情",p:"rèqíng",e:"Cordial / entusiasta",m:"热 (灬, caliente) otra vez → calidez, entusiasmo."},
+          {h:"照片",p:"zhàopiàn",e:"Fotografía",m:"照 (zhào) lleva 灬 (fuego/luz) → iluminar, fotografiar."}],
+      4: [{h:"抽烟",p:"chōuyān",e:"Fumar",m:"烟 (yān) lleva 火 (fuego) → humo, fumar."},
+          {h:"烤鸭",p:"kǎoyā",e:"Pato asado",m:"烤 (kǎo) lleva 火 (fuego) → asar."},
+          {h:"烦恼",p:"fánnǎo",e:"Preocuparse / angustia",m:"烦 (fán) lleva 火 (fuego, 'la cabeza que arde de preocupación') → angustia."}],
+      5: [{h:"依然",p:"yīrán",e:"Todavía / como antes",m:"然 (rán) lleva 灬 (fuego) en su base → 'así, de esa forma' → todavía."},
+          {h:"干燥",p:"gānzào",e:"Seco",m:"燥 (zào) lleva 火 (fuego, que seca) → seco, árido."},
+          {h:"强烈",p:"qiángliè",e:"Intenso / fuerte",m:"烈 (liè) lleva 灬 (fuego intenso) → fuerte, intenso."}],
+      6: [{h:"亲热",p:"qīnrè",e:"Afectuoso / cariñoso",m:"热 (灬, caliente) otra vez → calidez afectiva."},
+          {h:"剧烈",p:"jùliè",e:"Violento / intenso",m:"烈 (灬, intenso) otra vez → violento, intenso."},
+          {h:"发炎",p:"fāyán",e:"Inflamarse",m:"炎 (yán) es 火 doble (dos fuegos) → inflamación, calor extremo."}]
+    }
+  },
+  "日": { h:"日", p:"rì", e:"Sol / día",
+    niveles: {
+      1: [{h:"明天",p:"míngtiān",e:"Mañana (día)",m:"明 (míng) lleva 日 (sol) + 月 (luna) → 'sol y luna' = claro, brillante; con 天 (día), mañana."},
+          {h:"昨天",p:"zuótiān",e:"Ayer",m:"昨 (zuó) lleva 日 (día) → el día (de antes), ayer."},
+          {h:"时候",p:"shíhou",e:"Momento / tiempo",m:"时 (shí) lleva 日 (sol, 'marcar el tiempo por el sol') → tiempo, momento."}],
+      2: [{h:"早上",p:"zǎoshang",e:"Mañana (temprano)",m:"早 (zǎo) lleva 日 (sol) → temprano, cuando sale el sol."},
+          {h:"时间",p:"shíjiān",e:"Tiempo",m:"时 (日, tiempo) otra vez → el tiempo."},
+          {h:"生日",p:"shēngrì",e:"Cumpleaños",m:"日 (día/sol) de forma directa + 生 (nacer) → el día de nacimiento."}],
+      3: [{h:"明白",p:"míngbai",e:"Entender / claro",m:"明 (日, brillante) otra vez → claro, entender."},
+          {h:"聪明",p:"cōngming",e:"Inteligente",m:"明 (日) otra vez → brillante de mente, inteligente."},
+          {h:"节日",p:"jiérì",e:"Día festivo",m:"日 (día) de forma directa + 节 (fiesta/sección) → día festivo."}],
+      4: [{h:"准时",p:"zhǔnshí",e:"Puntual",m:"时 (日, tiempo) otra vez → a tiempo, puntual."},
+          {h:"及时",p:"jíshí",e:"A tiempo",m:"时 (日) otra vez → justo a tiempo."},
+          {h:"同时",p:"tóngshí",e:"Al mismo tiempo",m:"时 (日) otra vez → al mismo tiempo que algo."}],
+      5: [{h:"一旦",p:"yīdàn",e:"Una vez que / en caso de",m:"旦 (dàn) lleva 日 (el sol asomando sobre el horizonte, 一) → el amanecer, 'una vez que llegue el día'."},
+          {h:"临时",p:"línshí",e:"Temporal / de último momento",m:"时 (日, tiempo) otra vez → por el momento, temporal."},
+          {h:"光明",p:"guāngmíng",e:"Luz / luminoso",m:"明 (日, brillante) otra vez → luminoso."}],
+      6: [{h:"交易",p:"jiāoyì",e:"Transacción / comercio",m:"易 (yì) lleva 日 (sol) en su trazo superior → 'cambiar/intercambiar', transacción."},
+          {h:"仍旧",p:"réngjiù",e:"Todavía / como antes",m:"旧 (jiù) lleva 日 en su forma tradicional (日 relacionado con el tiempo que pasa) → viejo, como antes."},
+          {h:"会晤",p:"huìwù",e:"Reunirse (formal)",m:"晤 (wù) lleva 日 (día, 'encontrarse cara a cara') → reunirse."}]
+    }
+  },
+  "阝": { h:"阝", p:"yì", e:"Montaña o ciudad, según el lado del carácter",
+    niveles: {
+      1: [{h:"医院",p:"yīyuàn",e:"Hospital",m:"院 (yuàn) lleva 阝 (de 阜, recinto/montículo cerrado) → un recinto, un hospital."},
+          {h:"都",p:"dōu",e:"Todos / ambos",m:"都 (dōu) lleva 阝 (de 邑, ciudad — 'donde todos están') → todos, en su totalidad."},
+          {h:"那",p:"nà",e:"Ese / aquel",m:"那 (nà) lleva 阝 (de 邑, ciudad/lugar) → señala un lugar/cosa distante → ese, aquel."}],
+      2: [{h:"阴",p:"yīn",e:"Nublado",m:"阴 (yīn) lleva 阝 (de 阜, montículo que da sombra) + 月 (oscuridad) → nublado, sombra."}],
+      3: [{h:"太阳",p:"tàiyang",e:"Sol",m:"阳 (yáng) lleva 阝 (de 阜, la ladera que da al sol) + 日 (sol) → el sol."},
+          {h:"邻居",p:"línjū",e:"Vecino/a",m:"邻 (lín) lleva 阝 (de 邑, ciudad/lugar) → quien vive en el lugar de al lado."},
+          {h:"附近",p:"fùjìn",e:"Cerca / en las cercanías",m:"附 (fù) lleva 阝 (de 阜, adosado a un montículo) → cercano, anexo."}],
+      4: [{h:"危险",p:"wēixiǎn",e:"Peligro",m:"险 (xiǎn) lleva 阝 (de 阜, terreno escarpado) → peligroso, accidentado."},
+          {h:"国际",p:"guójì",e:"Internacional",m:"际 (jì) lleva 阝 (de 阜, el límite entre montículos) → el límite, lo que está 'entre' países."},
+          {h:"邮局",p:"yóujú",e:"Oficina de correos",m:"邮 (yóu) lleva 阝 (de 邑, ciudad — el correo viaja entre ciudades) → correo."}],
+      5: [{h:"保险",p:"bǎoxiǎn",e:"Seguro (de vida/salud)",m:"险 (阝, escarpado/riesgoso) otra vez → asegurarse contra el riesgo."},
+          {h:"内部",p:"nèibù",e:"Interior",m:"部 (bù) lleva 阝 (de 邑, una división de una ciudad/región) → una parte, el interior."},
+          {h:"台阶",p:"táijiē",e:"Escalón",m:"阶 (jiē) lleva 阝 (de 阜, montículo — subir por niveles) → escalón, grada."}],
+      6: [{h:"军队",p:"jūnduì",e:"Ejército / tropas",m:"队 (duì) lleva 阝 (de 阜, formación en una ladera) → una fila, tropas."},
+          {h:"之际",p:"zhījì",e:"Durante / en el momento de",m:"际 (阝, límite) otra vez → en el límite/momento de algo."},
+          {h:"保障",p:"bǎozhàng",e:"Garantizar",m:"障 (zhàng) lleva 阝 (de 阜, un montículo que protege) → una barrera, garantizar protección."}]
+    }
+  },
+  "艹": { h:"艹", p:"cǎo", e:"Hierba / planta",
+    niveles: {
+      1: [{h:"苹果",p:"píngguǒ",e:"Manzana",m:"苹 (píng) lleva 艹 (planta) → con 果 (fruto), la manzana."},
+          {h:"茶",p:"chá",e:"Té",m:"茶 (chá) lleva 艹 (planta) → la hoja de té."},
+          {h:"菜",p:"cài",e:"Verdura / platillo",m:"菜 (cài) lleva 艹 (planta) → verdura, comida."}],
+      2: [{h:"药",p:"yào",e:"Medicina",m:"药 (yào) lleva 艹 (planta, de las hierbas medicinales) → medicina."}],
+      3: [{h:"花",p:"huā",e:"Flor",m:"花 (huā) lleva 艹 (planta) → flor."},
+          {h:"草",p:"cǎo",e:"Pasto / hierba",m:"草 (cǎo) lleva 艹 (planta) → pasto, hierba."},
+          {h:"菜单",p:"càidān",e:"Menú",m:"菜 (艹, comida) otra vez → la lista de platillos."}],
+      4: [{h:"艺术",p:"yìshù",e:"Arte",m:"艺 (yì) lleva 艹 (planta, 'cultivar' → habilidad cultivada) → arte, técnica."},
+          {h:"著名",p:"zhùmíng",e:"Famoso",m:"著 (zhù) lleva 艹 (planta) → destacar, famoso."},
+          {h:"葡萄",p:"pútao",e:"Uva",m:"葡 (pú) lleva 艹 (planta) → la vid, la uva."}],
+      5: [{h:"刻苦",p:"kèkǔ",e:"Esforzado / trabajador",m:"苦 (kǔ) lleva 艹 (planta amarga) → amargo, esforzado, sufrido."},
+          {h:"痛苦",p:"tòngkǔ",e:"Dolor / sufrimiento",m:"苦 (艹, amargo) otra vez → dolor, sufrimiento."},
+          {h:"繁荣",p:"fánróng",e:"Próspero",m:"荣 (róng) lleva 艹 (planta floreciente) → prosperidad, esplendor."}],
+      6: [{h:"光荣",p:"guāngróng",e:"Honor / gloria",m:"荣 (艹, floreciente) otra vez → gloria, honor."},
+          {h:"储蓄",p:"chǔxù",e:"Ahorrar (dinero)",m:"蓄 (xù) lleva 艹 (planta, 'guardar como semillas') → acumular, ahorrar."},
+          {h:"动荡",p:"dòngdàng",e:"Inestabilidad (social)",m:"荡 (dàng) lleva 艹 (planta que se mece) → agitación, inestabilidad."}]
+    }
+  },
+  "刀": { h:"刀", p:"dāo", e:"Cuchillo (forma reducida: 刂)",
+    niveles: {
+      1: [{h:"分钟",p:"fēnzhōng",e:"Minuto",m:"分 (fēn) lleva 刀 (cortar en partes) → dividir; con 钟 (reloj), un minuto."},
+          {h:"前面",p:"qiánmiàn",e:"Adelante / enfrente",m:"前 (qián) lleva 刀 en su trazo inferior (originalmente un pie avanzando) → adelante."}],
+      2: [{h:"别",p:"bié",e:"No (imperativo) / despedirse",m:"别 (bié) lleva 刂 (cortar, separar) → despedirse, 'no hagas'."},
+          {h:"到",p:"dào",e:"Llegar",m:"到 (dào) lleva 刂 en su trazo (un movimiento que corta/llega a su fin) → llegar."}],
+      3: [{h:"别人",p:"biéren",e:"Otras personas",m:"别 (刂, separar) otra vez → 'las personas separadas de uno' = los demás."},
+          {h:"特别",p:"tèbié",e:"Especial",m:"别 (刂) otra vez → lo que se separa de lo común → especial."},
+          {h:"迟到",p:"chídào",e:"Llegar tarde",m:"到 (刂, llegar) otra vez → llegar tarde."}],
+      4: [{h:"一切",p:"yīqiè",e:"Todo",m:"切 (qiè) lleva 刀 (cortar todo, de principio a fin) → todo, completamente."},
+          {h:"判断",p:"pànduàn",e:"Juzgar / decidir",m:"判 (pàn) lleva 刀 ('cortar' un caso en dos = decidir) → juzgar."},
+          {h:"区别",p:"qūbié",e:"Diferencia",m:"别 (刂, separar) otra vez → lo que separa una cosa de otra."}],
+      5: [{h:"个别",p:"gèbié",e:"Individual / aislado",m:"别 (刂, separar) otra vez → caso por caso, aislado."},
+          {h:"从前",p:"cóngqián",e:"Antes / hace tiempo",m:"前 (刀, adelante) otra vez, aquí en el sentido de 'tiempo hacia adelante' = antes."},
+          {h:"分别",p:"fēnbié",e:"Separarse / respectivamente",m:"分 (刀, dividir) + 别 (刂, separar) → separarse."}],
+      6: [{h:"专利",p:"zhuānlì",e:"Patente",m:"利 (lì) lleva 刂 (una hoz cortando grano, 'beneficio') → ganancia, derecho exclusivo."},
+          {h:"便利",p:"biànlì",e:"Conveniente",m:"利 (刂, beneficio) otra vez → conveniente, útil."},
+          {h:"克制",p:"kèzhì",e:"Contenerse / reprimir",m:"制 (zhì) lleva 刂 (cortar/regular) → controlar, reprimir."}]
+    }
+  },
+  "贝": { h:"贝", p:"bèi", e:"Concha / dinero",
+    niveles: {
+      2: [{h:"贵",p:"guì",e:"Caro",m:"贵 (guì) lleva 贝 (dinero/concha, moneda antigua) → caro, valioso."}],
+      3: [{h:"比赛",p:"bǐsài",e:"Competencia",m:"赛 (sài) lleva 贝 (el premio en juego) → competencia."}],
+      4: [{h:"免费",p:"miǎnfèi",e:"Gratis",m:"费 (fèi) lleva 贝 (dinero) → gasto; con 免 (eximir), gratis."},
+          {h:"失败",p:"shībài",e:"Fracasar",m:"败 (bài) lleva 贝 (dinero, 'perder valor') → fracasar, derrota."},
+          {h:"工资",p:"gōngzī",e:"Salario",m:"资 (zī) lleva 贝 (dinero) → recursos, salario."}],
+      5: [{h:"投资",p:"tóuzī",e:"Invertir",m:"资 (贝, dinero) otra vez → invertir recursos."},
+          {h:"消费",p:"xiāofèi",e:"Consumir",m:"费 (贝, gasto) otra vez → consumir, gastar."},
+          {h:"欣赏",p:"xīnshǎng",e:"Apreciar / admirar",m:"赏 (shǎng) lleva 贝 (una recompensa valiosa) → admirar, premiar."}],
+      6: [{h:"依赖",p:"yīlài",e:"Depender de",m:"赖 (lài) lleva 贝 (dinero, 'contar con un recurso') → depender de."},
+          {h:"发财",p:"fācái",e:"Hacerse rico",m:"财 (cái) lleva 贝 (dinero) → riqueza."},
+          {h:"奖赏",p:"jiǎngshǎng",e:"Premio / recompensa",m:"赏 (贝, recompensa) otra vez → un premio."}]
+    }
+  },
+  "一": { h:"一", p:"yī", e:"Uno",
+    niveles: {
+      1: [{h:"一",p:"yī",e:"Uno",m:"一 (número uno) aparece de forma directa — el trazo más simple de todos."},
+          {h:"七",p:"qī",e:"Siete",m:"七 (qī) se construye sobre el trazo 一 (horizontal) → siete."},
+          {h:"东西",p:"dōngxi",e:"Cosa",m:"东 (dōng) lleva 一 como trazo base de su estructura → con 西 (oeste), 'cosa' (de cualquier punto cardinal)."}],
+      2: [{h:"一起",p:"yīqǐ",e:"Juntos",m:"一 (número uno) de forma directa → 'en un mismo lugar' = juntos."},
+          {h:"第一",p:"dìyī",e:"Primero",m:"一 (número uno) de forma directa → primero."},
+          {h:"两",p:"liǎng",e:"Dos",m:"两 (liǎng) lleva 一 como trazo base de su estructura → dos (para contar)."}],
+      3: [{h:"一直",p:"yīzhí",e:"Siempre / todo recto",m:"一 (número uno) de forma directa → 'en una sola dirección' = siempre, derecho."},
+          {h:"一般",p:"yībān",e:"General / común",m:"一 (número uno) de forma directa → 'de un mismo tipo' = general, común."},
+          {h:"世界",p:"shìjiè",e:"Mundo",m:"世 (shì) lleva 一 en su trazo inferior → una era, el mundo."}],
+      4: [{h:"专业",p:"zhuānyè",e:"Especialidad / carrera",m:"专 (zhuān) lleva 一 como trazo base de su estructura → exclusivo, especializado."},
+          {h:"千万",p:"qiānwàn",e:"Diez millones / (imperativo) de ninguna manera",m:"万 (wàn) lleva 一 en su trazo superior → diez mil; 千万, una cifra enorme (o 'por nada del mundo')."},
+          {h:"并且",p:"bìngqiě",e:"Y además",m:"且 (qiě) lleva 一 en su trazo inferior → 'además', 'y también'."}],
+      5: [{h:"一致",p:"yīzhì",e:"Unánime / coincidir",m:"一 (número uno) de forma directa → 'llegar a ser uno solo' = unánime."},
+          {h:"万一",p:"wànyī",e:"Por si acaso",m:"万 (一, diez mil) otra vez + 一 (uno) → 'uno en diez mil' = por si acaso."},
+          {h:"一律",p:"yīlǜ",e:"Sin excepción",m:"一 (número uno) de forma directa → 'bajo una sola norma' = sin excepción."}],
+      6: [{h:"一度",p:"yīdù",e:"Por un tiempo",m:"一 (número uno) de forma directa → 'una vez' = por un tiempo."},
+          {h:"不止",p:"bùzhǐ",e:"Más de / sin parar",m:"不 (bù) lleva 一 como trazo base de su estructura → 'no detenerse' = más de, sin parar."},
+          {h:"不料",p:"bùliào",e:"Inesperadamente",m:"不 (一) otra vez → 'no se esperaba' = inesperadamente."}]
+    }
+  }
+};
+// bloques 3-5 (los 30 radicales restantes) se suman a este array cuando
 // existan -- todo lo demas (niveles, optgroups, SRS, examen) escala solo.
-const RADICAL_DERIVADOS_BUILD = buildRadicalDerivadosVocab([RADICAL_DERIVADOS_BLOQUE1]);
+const RADICAL_DERIVADOS_BUILD = buildRadicalDerivadosVocab([RADICAL_DERIVADOS_BLOQUE1, RADICAL_DERIVADOS_BLOQUE2]);
 const VOCAB_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.vocab;
 const LEVELMAP_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.levelMap;
 const LEVELLABELS_RADICAL_DERIVADOS = RADICAL_DERIVADOS_BUILD.levelLabels;
