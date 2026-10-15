@@ -1112,17 +1112,27 @@ function buildRadicalDerivadosVocab(bloques){
   let lvl = 0;
   bloques.forEach((bloque, bi) => {
     const blockNum = bi + 1;
-    Object.values(bloque).forEach(rad => {
-      const slug = RADICAL_SLUGS[rad.h] || rad.h;
-      const glossaShort = rad.e.split(' (')[0]; // sin la aclaracion de forma reducida, para que el titulo no sea kilometrico
-      Object.keys(rad.niveles).sort((a, b) => a - b).forEach(hsk => {
-        lvl++;
+    const radicales = Object.values(bloque);
+    // El "nivel/parte" es el HSK, no el radical: cada opcion junta los
+    // derivados de HSK-N de los 10 radicales de este bloque en una sola
+    // ronda de practica -- si se agrupara por radical quedaban solo 1-2
+    // palabras por nivel, muy poco para practicar.
+    const hskLevels = new Set();
+    radicales.forEach(rad => Object.keys(rad.niveles).forEach(h => hskLevels.add(Number(h))));
+    [...hskLevels].sort((a, b) => a - b).forEach(hsk => {
+      lvl++;
+      const sectionsThisLevel = [];
+      radicales.forEach(rad => {
+        if(!rad.niveles[hsk]) return; // no todos los radicales tienen caracteres en todos los HSK
+        const slug = RADICAL_SLUGS[rad.h] || rad.h;
+        const glossaShort = rad.e.split(' (')[0]; // sin la aclaracion de forma reducida, para que el titulo no sea kilometrico
         const sec = `der_${slug}_${hsk}`;
         data[sec] = rad.niveles[hsk].map(w => ({h: w.h, p: w.p, e: w.e, m: w.m}));
         titles[sec] = `${rad.h} ${rad.p} (${glossaShort}) — derivados HSK${hsk}`;
-        levelMap[String(lvl)] = [sec];
-        levelLabels[lvl] = `B${blockNum} · ${rad.h} ${rad.p} ${glossaShort} - Parte HSK${hsk}`;
+        sectionsThisLevel.push(sec);
       });
+      levelMap[String(lvl)] = sectionsThisLevel;
+      levelLabels[lvl] = `Bloque ${blockNum} (${radicales.length} radicales) - Parte HSK${hsk}`;
     });
   });
   return {vocab: {data, titles}, levelMap, levelLabels};
